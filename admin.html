@@ -1,31 +1,11 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <script>
-    // DS ve Supabase fonksiyon adresleriniz (local geliştirirken admin-early.js bu değerlere göre CSP'yi rahatlatır)
-    window.ONLYOFFICE_SERVER_URL = 'https://polo-telecharger-forms-maybe.trycloudflare.com';
-    window.ONLYOFFICE_CALLBACK_URL = 'https://dulnucqcglytdkiditbw.functions.supabase.co/onlyoffice-callback';
-    window.ONLYOFFICE_CONVERT_URL = 'https://dulnucqcglytdkiditbw.functions.supabase.co/onlyoffice-convert';
-    // JWT kapalı: token çağrısını kapat
-    window.ONLYOFFICE_TOKEN_URL = '';
-  </script>
-  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>İlke Sendika - Yönetim Paneli</title>
-  <meta http-equiv="Content-Security-Policy" id="csp-meta"
-  content="default-src 'self';
-           script-src 'self' http://127.0.0.1:8080 https://doc.ilkesen.org.tr https://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-eval';
-           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com;
-           img-src 'self' data: https: blob:;
-           font-src 'self' data: https://fonts.gstatic.com;
-           connect-src 'self' http://127.0.0.1:8080 https://doc.ilkesen.org.tr wss://doc.ilkesen.org.tr https://documentserver.onlyoffice.com wss://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev wss://arlene-homeostatic-cristie.ngrok-free.dev ws://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com wss://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://*.supabase.co https://api.qrserver.com https://chart.googleapis.com;
-           frame-src 'self' blob: data: http://127.0.0.1:8080 https://doc.ilkesen.org.tr https://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://view.officeapps.live.com;
-           child-src 'self' blob: data:;
-           object-src 'self' blob: data:;
-           base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" id="csp-meta" content="default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net 'unsafe-eval'; script-src-elem 'self' https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://*.supabase.co https://api.qrserver.com https://chart.googleapis.com; frame-src 'self' blob: data: https://www.google.com https://www.gstatic.com; child-src 'self' blob: data:; object-src 'self' blob: data:; base-uri 'self'; form-action 'self'" />
   <script src="admin-early.js"></script>
-  <script src="vendor/jszip/jszip.min.js"></script>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="ilkesen.jpg" type="image/jpeg" />
   <link rel="stylesheet" href="styles.css" />
@@ -184,7 +164,11 @@
   <script defer src="safe-images-dom.js?v=20251227-01"></script>
   <script defer src="vendor/pdf-lib/pdf-lib.min.js"></script>
   <script defer src="vendor/fontkit/fontkit.umd.min.js"></script>
-  <!-- DOCX templating libs will be lazy-loaded in admin.js (local vendor first, then CDN if allowed) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/docxtemplater@3.31.1/build/docxtemplater.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.5.1/mammoth.browser.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script defer src="admin.js?v=20251227-01"></script>
 </head>
 <body>
@@ -374,7 +358,7 @@
             <button class="btn btn-outline active" id="incomingSubTabBtn" data-docs-subtab="incoming">Gelen Evrak</button>
             <button class="btn btn-outline" id="outgoingSubTabBtn" data-docs-subtab="outgoing">Giden Evrak</button>
           </div>
-          <button id="newIncomingDocBtn" class="btn btn-primary right" type="button">Yeni Gelen Evrak</button>
+          <button id="newIncomingDocBtn" class="btn btn-primary right" type="button">Evrak Kaydet</button>
           <button id="newOutgoingDocBtn" class="btn btn-primary right" type="button" style="display:none">Yeni Giden Evrak</button>
         </div>
         <table class="table" aria-label="Gelen Evrak Tablosu">

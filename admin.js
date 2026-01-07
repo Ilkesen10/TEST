@@ -28,26 +28,6 @@
     m.style.overflow = 'auto';
   }
 
-  // Lazy-load ONLYOFFICE DocsAPI from a configured Document Server
-  async function ensureOnlyOffice(serverUrl){
-    try{
-      if (window.DocsAPI && typeof window.DocsAPI.DocEditor === 'function') return window.DocsAPI;
-      const base = String(serverUrl||'').replace(/\/$/, ''); if (!base) return null;
-      const u = `${base}/web-apps/apps/api/documents/api.js`;
-      try{ console.debug('[OO] ensureOnlyOffice: injecting', u); }catch{}
-      const ok = await new Promise((resolve)=>{
-        const s=document.createElement('script');
-        s.src=u; s.defer=true; s.async=true;
-        s.onload=()=>{ try{ console.debug('[OO] api.js loaded', u, 'DocsAPI:', typeof window.DocsAPI); }catch{}; resolve(true); };
-        s.onerror=()=>{ try{ console.error('[OO] api.js failed to load', u); }catch{}; resolve(false); };
-        document.head.appendChild(s);
-      });
-      try{ console.debug('[OO] ensureOnlyOffice: load result', ok, 'DocsAPI type:', typeof window.DocsAPI); }catch{}
-      if (ok && window.DocsAPI) return window.DocsAPI;
-    }catch{}
-    return null;
-  }
-
   async function generateNextOutgoingRecordNo(){
     try{
       const year = new Date().getFullYear();
@@ -70,6 +50,96 @@
       const pad = String(next).padStart(3,'0');
       return `${prefix}${pad}`;
     }catch{ return `${new Date().getFullYear()}/001`; }
+  }
+
+  async function openOutgoingDocModal(row){
+    try{
+      row = row || null;
+      const isEdit = !!(row && row.id);
+      $modalTitle().textContent = isEdit ? 'Giden Evrak Düzenle' : 'Yeni Giden Evrak';
+      const form = $modalForm(); form.innerHTML='';
+      let recordNo = isEdit && row.record_no ? String(row.record_no) : await generateNextOutgoingRecordNo();
+      const today = new Date();
+      const dateIsoDefault = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0,10);
+
+      const recLbl = document.createElement('label'); recLbl.style.display='grid'; recLbl.style.gap='6px'; recLbl.innerHTML = '<span>Kayıt Sıra No</span>';
+      const recIn = document.createElement('input'); recIn.readOnly = true; recIn.disabled = true; recIn.value = recordNo; recLbl.appendChild(recIn); form.appendChild(recLbl);
+
+      const dateLbl = document.createElement('label'); dateLbl.style.display='grid'; dateLbl.style.gap='6px'; dateLbl.innerHTML = '<span>Tarihi</span>';
+      const dateIn = document.createElement('input'); dateIn.type='date'; dateIn.value = row?.date ? String(row.date).slice(0,10) : dateIsoDefault; dateLbl.appendChild(dateIn); form.appendChild(dateLbl);
+
+      const toLbl = document.createElement('label'); toLbl.style.display='grid'; toLbl.style.gap='6px'; toLbl.innerHTML = '<span>Gönderildiği Kişi/Kurum</span>';
+      const toIn = document.createElement('textarea'); toIn.rows = 2; toIn.value = row?.to_org || ''; toLbl.appendChild(toIn); form.appendChild(toLbl);
+
+      const attLbl = document.createElement('label'); attLbl.style.display='grid'; attLbl.style.gap='6px'; attLbl.innerHTML = '<span>Eki</span>';
+      const attIn = document.createElement('input'); attIn.value = row?.attachment || ''; attLbl.appendChild(attIn); form.appendChild(attLbl);
+
+      const subLbl = document.createElement('label'); subLbl.style.display='grid'; subLbl.style.gap='6px'; subLbl.innerHTML = '<span>Konusu</span>';
+      const subIn = document.createElement('input'); subIn.value = row?.subject || ''; subLbl.appendChild(subIn); form.appendChild(subLbl);
+
+      const fileNoLbl = document.createElement('label'); fileNoLbl.style.display='grid'; fileNoLbl.style.gap='6px'; fileNoLbl.innerHTML = '<span>Muhafaza Dosya No</span>';
+      const fileNoIn = document.createElement('input'); fileNoIn.value = row?.file_no || ''; fileNoLbl.appendChild(fileNoIn); form.appendChild(fileNoLbl);
+
+      const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
+      const genBtn = document.createElement('button'); genBtn.className='btn btn-primary'; genBtn.textContent='Belge Oluştur';
+      const cancelBtn = document.createElement('button'); cancelBtn.className='btn btn-danger'; cancelBtn.textContent='İptal';
+      actions.appendChild(genBtn); actions.appendChild(cancelBtn); form.appendChild(actions);
+      cancelBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
+      genBtn.addEventListener('click', async (e)=>{
+        e.preventDefault();
+        try{
+          genBtn.disabled = true; genBtn.textContent = 'Yükleniyor...';
+          recordNo = String(recIn.value||recordNo);
+          const dSel = dateIn.value ? new Date(dateIn.value+'T12:00:00Z') : today;
+          const dateIso = dateIn.value ? String(dateIn.value) : dateIsoDefault;
+          const toOrg = String(toIn.value||'');
+          const att = String(attIn.value||'');
+          const subject = String(subIn.value||'');
+          const fileNo = String(fileNoIn.value||'');
+          const resp = await fetch('assets/sablon.docx'); if (!resp.ok) throw new Error('Şablon alınamadı');
+          const tmplAb = await resp.arrayBuffer();
+          const zip = new (window.PizZip||window.pizzip||window.PIZZip||PizZip)(tmplAb);
+          const DocxClass = window.docxtemplater || window.Docxtemplater || window.DOCXTEMPLATER; if (!DocxClass) throw new Error('Docxtemplater yüklenemedi');
+          const doc = new DocxClass(zip, { paragraphLoop:true, linebreaks:true });
+          const trDate = dSel.toLocaleDateString('tr-TR');
+          doc.setData({ KAYITSIRANO: recordNo, KAYIT_SIRA_NO: recordNo, TARIH: trDate, KISI_KURUM: toOrg, EK: att, EKI: att, KONUSU: subject, DOSYA_NO: fileNo });
+          try{ doc.render(); }catch{ throw new Error('Şablon doldurulamadı'); }
+          const filledAb = doc.getZip().generate({ type:'arraybuffer' });
+          const res = await window.mammoth.convertToHtml({ arrayBuffer: filledAb });
+          const html = res && res.value ? res.value : '<div></div>';
+          form.innerHTML = '';
+          const ed = document.createElement('div'); ed.contentEditable='true'; ed.style.minHeight='900px'; ed.style.padding='24px'; ed.style.background='#fff'; ed.style.border='1px solid #e5e7eb'; ed.style.borderRadius='10px'; ed.style.overflow='auto'; ed.innerHTML = html; form.appendChild(ed);
+          const act = document.createElement('div'); act.style.display='flex'; act.style.gap='8px'; act.style.marginTop='8px';
+          const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Kaydet';
+          const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='İptal';
+          act.appendChild(saveBtn); act.appendChild(cancelBtn2); form.appendChild(act);
+          cancelBtn2.addEventListener('click', (e2)=>{ e2.preventDefault(); closeModal(); });
+          saveBtn.addEventListener('click', async (e2)=>{
+            e2.preventDefault();
+            try{
+              saveBtn.disabled = true; saveBtn.textContent='Kaydediliyor...';
+              const canvas = await html2canvas(ed, { scale: 2, backgroundColor:'#ffffff' });
+              const img = canvas.toDataURL('image/png');
+              const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null; if (!jsPDF) throw new Error('PDF oluşturma hazır değil');
+              const pdf = new jsPDF({ unit:'pt', format:'a4', orientation:'portrait' });
+              const pw = pdf.internal.pageSize.getWidth(); const ph = pdf.internal.pageSize.getHeight();
+              const iw = canvas.width; const ih = canvas.height; const r = Math.min(pw/iw, ph/ih);
+              const w = iw*r; const h = ih*r; const x = (pw - w)/2; const y = (ph - h)/2;
+              pdf.addImage(img, 'PNG', x, y, w, h, undefined, 'FAST');
+              const blob = pdf.output('blob');
+              const safeKey = recordNo.replace(/\//g,'_');
+              const key = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.pdf`;
+              const fileUrl = await uploadToBucketGeneric(blob, 'docs', key);
+              const payload = { record_no: recordNo, date: dateIso, to_org: toOrg, attachment: att, subject: subject, file_no: fileNo, file_url: fileUrl };
+              let q; if (isEdit && row.id){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); } else { q = sb().from('outgoing_docs').insert(payload).select('id').single(); }
+              const { error } = await q; if (error) throw error;
+              closeModal(); await loadAdminOutgoingDocs();
+            }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); saveBtn.textContent='Kaydet'; saveBtn.disabled=false; }
+          });
+        }catch(e){ alert('Belge açılmadı: ' + (e?.message||String(e))); genBtn.textContent='Belge Oluştur'; genBtn.disabled=false; }
+      });
+      (typeof openModal === 'function' ? openModal() : (window.openModal && window.openModal()));
+    }catch(e){ alert('Evrak formu açılamadı: ' + (e?.message||String(e))); }
   }
 
   // ========== BENEFITS (Üyelere Özel) ==========
@@ -268,88 +338,6 @@
         const fk = await p; if (fk) return fk;
       }catch{}
     }
-    return null;
-  }
-
-  // Lazy-load docx-preview for in-modal Word-like rendering
-  async function ensureDocxPreview(){
-    try{
-      if (window.docx && window.docx.renderAsync) return window.docx;
-      if (window.docx && window.docx.default && window.docx.default.renderAsync) return window.docx.default;
-      if (window.docxPreview && window.docxPreview.renderAsync) return window.docxPreview;
-      const localOnly = !!(window.__DOCX_REQUIRE_LOCAL);
-      // inject css once
-      if (!document.querySelector('link[data-docx-preview-css]')){
-        const localCss = [
-          'vendor/docx-preview/docx-preview.css'
-        ];
-        const cdnCss = [
-          'https://cdn.jsdelivr.net/npm/docx-preview@0.3.1/dist/docx-preview.css',
-          'https://unpkg.com/docx-preview@0.3.1/dist/docx-preview.css'
-        ];
-        const cssUrls = localOnly ? localCss : [...localCss, ...cdnCss];
-        for (const cu of cssUrls){
-          try{
-            const l=document.createElement('link'); l.rel='stylesheet'; l.href=cu; l.setAttribute('data-docx-preview-css','1'); document.head.appendChild(l); break;
-          }catch{}
-        }
-      }
-      const localJs = [
-        'vendor/docx-preview/docx-preview.min.js'
-      ];
-      const cdnJs = [
-        'https://cdn.jsdelivr.net/npm/docx-preview@0.3.1/dist/docx-preview.min.js',
-        'https://unpkg.com/docx-preview@0.3.1/dist/docx-preview.min.js'
-      ];
-      const urls = localOnly ? localJs : [...localJs, ...cdnJs];
-      async function load(u){ return new Promise((resolve)=>{ const s=document.createElement('script'); s.src=u; s.defer=true; s.async=true; s.onload=()=>resolve(true); s.onerror=()=>resolve(false); document.head.appendChild(s); }); }
-      for (const u of urls){ const ok = await load(u); if (ok && ((window.docx && window.docx.renderAsync) || (window.docx && window.docx.default && window.docx.default.renderAsync) || (window.docxPreview && window.docxPreview.renderAsync))) break; }
-      // give the script a brief moment to attach its global
-      if (!((window.docx && window.docx.renderAsync) || (window.docx && window.docx.default && window.docx.default.renderAsync) || (window.docxPreview && window.docxPreview.renderAsync))){
-        for (let i=0;i<10;i++){
-          await new Promise(r=> setTimeout(r,100));
-          if ((window.docx && window.docx.renderAsync) || (window.docx && window.docx.default && window.docx.default.renderAsync) || (window.docxPreview && window.docxPreview.renderAsync)) break;
-        }
-      }
-      if (window.docx && window.docx.renderAsync) return window.docx;
-      if (window.docx && window.docx.default && window.docx.default.renderAsync) return window.docx.default;
-      if (window.docxPreview && window.docxPreview.renderAsync) return window.docxPreview;
-    }catch{}
-    return null;
-  }
-
-  // Lazy-load PizZip + Docxtemplater for DOCX templating
-  async function ensureDocxTemplater(){
-    try{
-      const hasDocx = ()=> !!(window.PizZip && (window.docxtemplater || window.Docxtemplater));
-      if (hasDocx()) return { PizZip: window.PizZip, Docxtemplater: (window.docxtemplater || window.Docxtemplater) };
-      if (document.querySelector('script[data-pizzip]') || document.querySelector('script[data-docxtemplater]')){
-        for (let i=0;i<10;i++){ await new Promise(r=> setTimeout(r,150)); if (hasDocx()) return { PizZip: window.PizZip, Docxtemplater: (window.docxtemplater || window.Docxtemplater) }; }
-      }
-      const localOnly = !!(window.__DOCX_REQUIRE_LOCAL);
-      async function load(url, attr){
-        return new Promise((resolve)=>{ const s=document.createElement('script'); s.src=url; s.defer=true; s.async=true; if (attr) s.setAttribute(attr,'1'); s.onload=()=>resolve(true); s.onerror=()=>resolve(false); document.head.appendChild(s); });
-      }
-      const pizLocal = [ 'vendor/pizzip/pizzip.min.js' ];
-      for (const u of pizLocal){ const ok = await load(u, 'data-pizzip'); if (ok && window.PizZip) break; }
-      const docxLocal = [ 'vendor/docxtemplater/docxtemplater.js' ];
-      for (const u of docxLocal){ const ok = await load(u, 'data-docxtemplater'); if (ok && (window.docxtemplater || window.Docxtemplater)) break; }
-      if (!hasDocx() && !localOnly){
-        const pizCdn = [
-          'https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js',
-          'https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js'
-        ];
-        for (const u of pizCdn){ const ok = await load(u, 'data-pizzip'); if (ok && window.PizZip) break; }
-        const docxCdn = [
-          'https://cdn.jsdelivr.net/npm/docxtemplater@3.42.2/build/docxtemplater.js',
-          'https://unpkg.com/docxtemplater@3.42.2/build/docxtemplater.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.41.2/docxtemplater.js'
-        ];
-        for (const u of docxCdn){ const ok = await load(u, 'data-docxtemplater'); if (ok && (window.docxtemplater || window.Docxtemplater)) break; }
-      }
-      if (hasDocx()) return { PizZip: window.PizZip, Docxtemplater: (window.docxtemplater || window.Docxtemplater) };
-    }catch{}
     return null;
   }
 
@@ -4468,7 +4456,7 @@ function openReportModal(row){
         wrap.removeChild(loading);
         const img = document.createElement('img'); img.src = url; img.alt = 'Önizleme'; img.style.maxWidth='100%'; img.style.maxHeight='75vh'; img.style.objectFit='contain'; wrap.appendChild(img);
       } else if (officeExt.has(ext)){
-        // Do not embed Office Online due to CSP; provide fallback actions only
+        // Standardize office files: only open in new tab or download
         buildOfficeFallback();
       } else {
         let blobUrl = null;
@@ -4621,316 +4609,6 @@ function openReportModal(row){
           else { q = sb().from('incoming_docs').insert(payload).select('id, record_no').single(); }
           const { data, error } = await q; if (error) throw error;
           closeModal(); await loadAdminIncomingDocs();
-        }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); }
-      });
-
-      (typeof openModal === 'function' ? openModal() : (window.openModal && window.openModal()));
-    }catch(e){ alert('Evrak formu açılamadı: ' + (e?.message||String(e))); }
-  }
-
-  async function openOutgoingDocModal(row){
-    try{
-      row = row || null;
-      const isEdit = !!(row && row.id);
-      $modalTitle().textContent = isEdit ? 'Giden Evrak Düzenle' : 'Yeni Giden Evrak';
-      const form = $modalForm(); form.innerHTML='';
-
-      const recLbl = document.createElement('label'); recLbl.style.display='grid'; recLbl.style.gap='6px'; recLbl.innerHTML = '<span>Kayıt Sıra No</span>';
-      const recIn = document.createElement('input'); recIn.readOnly = true; recIn.disabled = true; recIn.value = row?.record_no || '';
-      recLbl.appendChild(recIn); form.appendChild(recLbl);
-
-      const toLbl = document.createElement('label'); toLbl.style.display='grid'; toLbl.style.gap='6px'; toLbl.innerHTML = '<span>Gönderildiği Kişi veya Kurum</span>';
-      const toIn = document.createElement('input'); toIn.value = row?.to_org || '';
-      toLbl.appendChild(toIn); form.appendChild(toLbl);
-
-      const dateLbl = document.createElement('label'); dateLbl.style.display='grid'; dateLbl.style.gap='6px'; dateLbl.innerHTML = '<span>Tarihi</span>';
-      const dateIn = document.createElement('input'); dateIn.type='date'; dateIn.value = row?.date ? String(row.date).slice(0,10) : '';
-      dateLbl.appendChild(dateIn); form.appendChild(dateLbl);
-
-      const attLbl = document.createElement('label'); attLbl.style.display='grid'; attLbl.style.gap='6px'; attLbl.innerHTML = '<span>Eki</span>';
-      const attIn = document.createElement('input'); attIn.value = row?.attachment || '';
-      attLbl.appendChild(attIn); form.appendChild(attLbl);
-
-      const subLbl = document.createElement('label'); subLbl.style.display='grid'; subLbl.style.gap='6px'; subLbl.innerHTML = '<span>Konusu</span>';
-      const subIn = document.createElement('input'); subIn.value = row?.subject || '';
-      subLbl.appendChild(subIn); form.appendChild(subLbl);
-
-      const fileNoLbl = document.createElement('label'); fileNoLbl.style.display='grid'; fileNoLbl.style.gap='6px'; fileNoLbl.innerHTML = '<span>Muhafaza Edildiği Dosya No</span>';
-      const fileNoIn = document.createElement('input'); fileNoIn.value = row?.file_no || '';
-      fileNoLbl.appendChild(fileNoIn); form.appendChild(fileNoLbl);
-
-      const info = document.createElement('div'); info.className='muted'; info.textContent='Alanları doldurun, ardından "Oluştur" ile belgeyi düzenlemeye açın.'; form.appendChild(info);
-      const ooBtn = document.createElement('button'); ooBtn.type='button'; ooBtn.className='btn btn-primary'; ooBtn.textContent='Belgeyi OnlyOffice ile Oluştur'; form.appendChild(ooBtn);
-
-      // ONLYOFFICE state (move early so input listeners can check it)
-      const onlyOffice = { active:false, serverUrl:null, callbackUrlBase:null, tokenUrl:null, convertUrl:null, storageKey:null, publicUrl:null, editor:null };
-      function getOnlyOfficeEnv(){
-        const serverUrl = (window.ONLYOFFICE_SERVER_URL || window.onlyOfficeServerUrl || '').trim();
-        const callbackUrlBase = (window.ONLYOFFICE_CALLBACK_URL || window.onlyOfficeCallbackUrl || '').trim();
-        let tokenUrl = '';
-        if ('ONLYOFFICE_TOKEN_URL' in window) {
-          tokenUrl = String(window.ONLYOFFICE_TOKEN_URL || '').trim(); // allow explicit empty to disable
-        }
-        const convertUrl = (window.ONLYOFFICE_CONVERT_URL || '').trim() || (callbackUrlBase ? callbackUrlBase.replace('onlyoffice-callback', 'onlyoffice-convert') : '');
-        return { serverUrl, callbackUrlBase, tokenUrl, convertUrl };
-      }
-      try{ if (window.__outgoingOnlyOffice && window.__outgoingOnlyOffice.storageKey){ onlyOffice.storageKey = window.__outgoingOnlyOffice.storageKey; } }catch{}
-
-      let lastDocxBlob = null; let previewTmr = null; let previewBusy = false;
-      function gatherFields(){
-        const record_no = String(recIn.value||'').trim();
-        const to_org = String(toIn.value||'').trim();
-        const date = dateIn.value ? String(dateIn.value).slice(0,10) : null;
-        const attachment = String(attIn.value||'').trim();
-        const subject = String(subIn.value||'').trim();
-        const file_no = String(fileNoIn.value||'').trim();
-        return { record_no, to_org, date, attachment, subject, file_no };
-      }
-      async function buildDocxBlob(){
-        const { record_no, to_org, date, attachment, subject, file_no } = gatherFields();
-        const mods = await ensureDocxTemplater(); if (!mods) throw new Error('DOCX kütüphanesi yüklenemedi');
-        const { PizZip, Docxtemplater } = mods;
-        const resp = await fetch('assets/sablon.docx', { cache:'no-store' }); if (!resp.ok) throw new Error('sablon.docx yüklenemedi');
-        const buf = await resp.arrayBuffer();
-        const zip = new PizZip(buf);
-        const doc = new Docxtemplater(zip, { paragraphLoop:true, linebreaks:true });
-        const fmtDate = (s)=>{ try{ if(!s) return ''; const parts=String(s).split('-'); if(parts.length===3) return `${parts[2]}.${parts[1]}.${parts[0]}`; return s; }catch{return String(s||'');} };
-        // Fill placeholders: only these exact keys are supported
-        doc.setData({
-          KAYITSIRANO: String(record_no||''),
-          KONUSU: String(subject||''),
-          TARIH: fmtDate(date),
-          KISI_KURUM: String(to_org||''),
-          EK: String(attachment||'')
-        });
-        doc.render();
-        return doc.getZip().generate({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      }
-      async function renderPreview(){ if (previewBusy) return; previewBusy=true; try{ lastDocxBlob = await buildDocxBlob(); }catch{} finally{ previewBusy=false; } }
-      const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
-      const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Oluştur ve Kaydet';
-      const cancelBtn = document.createElement('button'); cancelBtn.className='btn btn-danger'; cancelBtn.textContent='İptal';
-      actions.appendChild(saveBtn); actions.appendChild(cancelBtn); form.appendChild(actions);
-
-      cancelBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
-
-      if (!isEdit){ try{ recIn.value = await generateNextOutgoingRecordNo(); }catch{ recIn.value = `${new Date().getFullYear()}/001`; } }
-
-      // No inline Word preview; ONLYOFFICE will be used on demand
-
-      // ONLYOFFICE integration
-      async function startOnlyOfficeEdit(){
-        const env = getOnlyOfficeEnv(); if (!env.serverUrl || !env.callbackUrlBase){ alert('ONLYOFFICE yapılandırması eksik. Lütfen ONLYOFFICE_SERVER_URL ve ONLYOFFICE_CALLBACK_URL tanımlayın.'); return; }
-        try{
-          // Build initial DOCX (prefilled)
-          // Ensure record number exists before generating
-          let preserved = gatherFields();
-          let { record_no } = preserved;
-          if (!record_no){
-            try{ recIn.value = await generateNextOutgoingRecordNo(); }catch{}
-            record_no = String(recIn.value||'').trim();
-            preserved.record_no = record_no;
-          }
-          // Always rebuild from current form values
-          lastDocxBlob = await buildDocxBlob();
-          const safeKey = (record_no||'doc').replace(/\//g,'_');
-          const key = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.docx`;
-          const file = new File([lastDocxBlob], `${safeKey}.docx`, { type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-          const url = await uploadToBucketGeneric(file, 'docs', key);
-          onlyOffice.storageKey = key; onlyOffice.publicUrl = url; onlyOffice.serverUrl = env.serverUrl; onlyOffice.callbackUrlBase = env.callbackUrlBase;
-          onlyOffice.active = true;
-          const docKey = `${safeKey}_${Date.now()}`;
-          const config = {
-            document: {
-              fileType: 'docx',
-              title: `${safeKey}.docx`,
-              url: onlyOffice.publicUrl,
-              key: docKey,
-              permissions: { edit:true, download:true, print:true }
-            },
-            editorConfig: {
-              mode: 'edit',
-              callbackUrl: `${onlyOffice.callbackUrlBase}?bucket=docs&key=${encodeURIComponent(onlyOffice.storageKey)}`,
-              lang: 'tr',
-            },
-            height: '100%',
-            width: '100%'
-          };
-          // Request server-signed token if available (JWT required by DS)
-          try{
-            const tokenUrl = env.tokenUrl;
-            if (tokenUrl){
-              const resp = await fetch(tokenUrl, { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ config }) });
-              if (resp.ok){ const j = await resp.json().catch(()=>null); if (j && j.token) config.token = j.token; }
-            }
-          }catch{}
-          try{
-            // Provide user info to avoid name prompt inside ONLYOFFICE
-            const u = await sb().auth.getUser();
-            const uu = (u && u.data && u.data.user) ? u.data.user : null;
-            const uname = (uu && (uu.user_metadata && (uu.user_metadata.full_name || uu.user_metadata.name))) || (uu && uu.email) || 'Kullanıcı';
-            const uid = (uu && uu.id) || 'local';
-            config.editorConfig.user = { id: uid, name: uname };
-          }catch{}
-          // Open editor in a new modal view (not a new browser tab)
-          try{ window.__outgoingOnlyOffice = { storageKey: onlyOffice.storageKey }; }catch{}
-          const DocsAPI = await ensureOnlyOffice(env.serverUrl); if (!DocsAPI) return alert('ONLYOFFICE yüklenemedi');
-          // Switch modal content
-          try{ $modalTitle().textContent = 'Belge Düzenleme'; }catch{}
-          const formEl = $modalForm();
-          formEl.innerHTML = '';
-          const containerId = 'onlyoffice-editor-' + Math.random().toString(36).slice(2);
-          // Prepare form to act as a flexible column container so the editor can fill the viewport
-          formEl.style.display='flex';
-          formEl.style.flexDirection='column';
-          formEl.style.flex='1 1 auto';
-          formEl.style.minHeight='0';
-          const editorWrap = document.createElement('div'); editorWrap.id = containerId; editorWrap.style.width='100%'; editorWrap.style.flex='1 1 auto'; editorWrap.style.minHeight='0'; editorWrap.style.overscrollBehavior='contain';
-          formEl.appendChild(editorWrap);
-          // Actions in editor modal
-          const actions2 = document.createElement('div'); actions2.style.display='flex'; actions2.style.gap='8px'; actions2.style.marginTop='12px';
-          const saveCloseBtn = document.createElement('button'); saveCloseBtn.className='btn btn-success'; saveCloseBtn.textContent='Oluştur ve Kaydet';
-          const backBtn = document.createElement('button'); backBtn.className='btn btn-secondary'; backBtn.textContent='Forma Geri Dön';
-          const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='Kapat';
-          actions2.appendChild(saveCloseBtn); actions2.appendChild(backBtn); actions2.appendChild(cancelBtn2);
-          formEl.appendChild(actions2);
-          // Helper to toggle modal full-screen
-          function enterFullscreen(){
-            try{
-              const m=$modal(); if(!m) return;
-              m.style.maxWidth='100vw'; m.style.width='100vw'; m.style.maxHeight='100vh'; m.style.height='100vh';
-              m.style.borderRadius='0'; m.style.padding='8px 12px'; m.style.margin='0';
-              m.style.display='flex'; m.style.flexDirection='column';
-              try{ document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; }catch{}
-            }catch{}
-          }
-          function exitFullscreen(){
-            try{
-              const m=$modal(); if(!m) return;
-              m.style.maxWidth=''; m.style.width=''; m.style.maxHeight=''; m.style.height='';
-              m.style.borderRadius=''; m.style.padding=''; m.style.margin='';
-              m.style.display=''; m.style.flexDirection='';
-              // reset form flex styles
-              formEl.style.display=''; formEl.style.flexDirection=''; formEl.style.flex=''; formEl.style.minHeight='';
-              try{ document.documentElement.style.overflow=''; document.body.style.overflow=''; }catch{}
-            }catch{}
-          }
-          function updateEditorLayout(){
-            try{
-              const m=$modal(); if(!m) return;
-              const headerWrap = m.firstElementChild; // title + close
-              const hH = headerWrap ? headerWrap.getBoundingClientRect().height : 0;
-              const aH = actions2 ? actions2.getBoundingClientRect().height : 0;
-              const cs = getComputedStyle(m);
-              const padY = (parseFloat(cs.paddingTop)||0) + (parseFloat(cs.paddingBottom)||0);
-              const extra = 8; // small gap
-              const target = Math.max(240, window.innerHeight - hH - aH - padY - extra);
-              editorWrap.style.height = target + 'px';
-              if (onlyOffice.editor && onlyOffice.editor.resize) onlyOffice.editor.resize('100%','100%');
-            }catch{}
-          }
-          function onResize(){ try{ updateEditorLayout(); if (onlyOffice.editor && onlyOffice.editor.resize) onlyOffice.editor.resize('100%','100%'); }catch{} }
-
-          // Ensure modal is open and fullscreen BEFORE instantiation
-          (typeof openModal === 'function' ? openModal() : (window.openModal && window.openModal()));
-          enterFullscreen();
-          updateEditorLayout();
-          // Instantiate OnlyOffice editor inside modal
-          onlyOffice.editor = new DocsAPI.DocEditor(containerId, config);
-          // Ensure the editor fits the container
-          setTimeout(updateEditorLayout, 0);
-          window.addEventListener('resize', onResize);
-
-          // Save and close handler (server-side convert then DB save)
-          saveCloseBtn.addEventListener('click', async (e)=>{
-            e.preventDefault();
-            try{
-              let rn = String(preserved.record_no||'').trim();
-              if (!rn){ try{ rn = await generateNextOutgoingRecordNo(); preserved.record_no = rn; }catch{} }
-              if (!rn) return alert('Kayıt Sıra No üretilemedi');
-              const pdfUrl = await generatePdfAndUpload(preserved.record_no, preserved.to_org, preserved.date, preserved.attachment, preserved.subject, preserved.file_no);
-              const payload = { record_no: preserved.record_no, to_org: preserved.to_org, date: preserved.date, attachment: preserved.attachment, subject: preserved.subject, file_no: preserved.file_no, file_url: pdfUrl };
-              let q;
-              if (isEdit){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); }
-              else { q = sb().from('outgoing_docs').insert(payload).select('id, record_no').single(); }
-              const { error } = await q; if (error) throw error;
-              try{ delete window.__outgoingOnlyOffice; }catch{}
-              window.removeEventListener('resize', onResize);
-              exitFullscreen(); closeModal(); await loadAdminOutgoingDocs();
-            }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); }
-          });
-          // Back to form handler (reopen with preserved values)
-          backBtn.addEventListener('click', (e)=>{
-            e.preventDefault();
-            try{ window.removeEventListener('resize', onResize); exitFullscreen(); closeModal(); }catch{}
-            const seed = Object.assign({}, row || {}, preserved);
-            openOutgoingDocModal(seed);
-          });
-          // Close editor modal only
-          cancelBtn2.addEventListener('click', (e)=>{ e.preventDefault(); window.removeEventListener('resize', onResize); exitFullscreen(); closeModal(); });
-        }catch(e){ alert('ONLYOFFICE açılamadı: ' + (e?.message||String(e))); }
-      }
-      ooBtn.addEventListener('click', (e)=>{ e.preventDefault(); startOnlyOfficeEdit(); });
-
-
-      async function generateDocxAndUpload(record_no, to_org, date, attachment, subject, file_no){
-        // Use the last built blob if present to keep WYSIWYG parity with preview
-        let out = lastDocxBlob;
-        if (!out){ out = await buildDocxBlob(); }
-        const safeKey = record_no.replace(/\//g,'_');
-        const key = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.docx`;
-        const file = new File([out], `${safeKey}.docx`, { type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        const url = await uploadToBucketGeneric(file, 'docs', key);
-        return url;
-      }
-
-      async function generatePdfAndUpload(record_no, to_org, date, attachment, subject, file_no){
-        const env = getOnlyOfficeEnv();
-        if (!env.convertUrl) throw new Error('PDF dönüşüm servisi yapılandırılmadı');
-        const safeKey = (record_no || 'doc').replace(/\//g,'_');
-        let docKey = onlyOffice.storageKey;
-        if (!docKey){
-          const blob = lastDocxBlob || await buildDocxBlob();
-          const fallbackKey = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.docx`;
-          const file = new File([blob], `${safeKey}.docx`, { type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-          await uploadToBucketGeneric(file, 'docs', fallbackKey);
-          docKey = fallbackKey;
-        }
-        const resp = await fetch(env.convertUrl, { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ bucket:'docs', key: docKey, title: `${safeKey}.docx` }) });
-        if (!resp.ok) {
-          let txt='';
-          try{ txt = await resp.text(); }catch{}
-          try{ console.error('onlyoffice-convert failed:', txt); }catch{}
-          try{ if (txt) await navigator.clipboard.writeText(txt); }catch{}
-          throw new Error('PDF dönüştürme başarısız. Detaylar konsola yazıldı ve panoya kopyalandı.');
-        }
-        const j = await resp.json().catch(()=>null);
-        if (!j || !j.url) throw new Error('PDF dönüştürme yanıtı geçersiz');
-        return j.url;
-      }
-
-      saveBtn.addEventListener('click', async (e)=>{
-        e.preventDefault();
-        try{
-          let record_no = String(recIn.value||'').trim();
-          if (!record_no) { try{ record_no = await generateNextOutgoingRecordNo(); recIn.value = record_no; }catch{} }
-          if (!record_no) return alert('Kayıt Sıra No üretilemedi');
-          const to_org = String(toIn.value||'').trim();
-          const date = dateIn.value ? String(dateIn.value).slice(0,10) : null;
-          const attachment = String(attIn.value||'').trim();
-          const subject = String(subIn.value||'').trim();
-          const file_no = String(fileNoIn.value||'').trim();
-          let file_url = null;
-          // Tek buton: PDF olarak oluştur ve kaydet
-          try{ file_url = await generatePdfAndUpload(record_no, to_org, date, attachment, subject, file_no); }
-          catch(err){ return alert('PDF oluşturulamadı: ' + (err?.message||String(err))); }
-
-          const payload = { record_no, to_org, date, attachment, subject, file_no, file_url };
-          let q;
-          if (isEdit){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); }
-          else { q = sb().from('outgoing_docs').insert(payload).select('id, record_no').single(); }
-          const { error } = await q; if (error) throw error;
-          closeModal(); await loadAdminOutgoingDocs();
         }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); }
       });
 
