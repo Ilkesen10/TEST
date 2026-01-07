@@ -1,0 +1,9 @@
+/contact              /contact.html              200
+/avukatlik-talebi     /avukatlik-talebi.html     200
+/gorusme-talebi       /gorusme-talebi.html       200
+/uyelik-basvurusu     /uyelik-basvurusu.html     200
+/news                 /news.html                 200
+/page/:slug   /page.html?slug=:slug  200
+/page/:slug/  /page.html?slug=:slug  200
+/:slug        /page.html?slug=:slug  200
+/:slug/       /page.html?slug=:slug  200

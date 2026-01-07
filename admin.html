@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <script>
+    // DS ve Supabase fonksiyon adresleriniz (local geliştirirken admin-early.js bu değerlere göre CSP'yi rahatlatır)
+    window.ONLYOFFICE_SERVER_URL = 'https://polo-telecharger-forms-maybe.trycloudflare.com';
+    window.ONLYOFFICE_CALLBACK_URL = 'https://dulnucqcglytdkiditbw.functions.supabase.co/onlyoffice-callback';
+    window.ONLYOFFICE_CONVERT_URL = 'https://dulnucqcglytdkiditbw.functions.supabase.co/onlyoffice-convert';
+    // JWT kapalı: token çağrısını kapat
+    window.ONLYOFFICE_TOKEN_URL = '';
+  </script>
+  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>İlke Sendika - Yönetim Paneli</title>
+  <meta http-equiv="Content-Security-Policy" id="csp-meta"
+  content="default-src 'self';
+           script-src 'self' http://127.0.0.1:8080 https://doc.ilkesen.org.tr https://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-eval';
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com;
+           img-src 'self' data: https: blob:;
+           font-src 'self' data: https://fonts.gstatic.com;
+           connect-src 'self' http://127.0.0.1:8080 https://doc.ilkesen.org.tr wss://doc.ilkesen.org.tr https://documentserver.onlyoffice.com wss://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev wss://arlene-homeostatic-cristie.ngrok-free.dev ws://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com wss://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://*.supabase.co https://api.qrserver.com https://chart.googleapis.com;
+           frame-src 'self' blob: data: http://127.0.0.1:8080 https://doc.ilkesen.org.tr https://documentserver.onlyoffice.com https://arlene-homeostatic-cristie.ngrok-free.dev http://arlene-homeostatic-cristie.ngrok-free.dev https://polo-telecharger-forms-maybe.trycloudflare.com https://www.google.com https://www.gstatic.com https://view.officeapps.live.com;
+           child-src 'self' blob: data:;
+           object-src 'self' blob: data:;
+           base-uri 'self'; form-action 'self'">
+  <script src="admin-early.js"></script>
+  <script src="vendor/jszip/jszip.min.js"></script>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="ilkesen.jpg" type="image/jpeg" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .admin-wrap{max-width:1100px;margin:0 auto;padding:24px 16px}
+    .auth-card{max-width:420px;margin:48px auto}
+    .toolbar{display:flex;gap:8px;align-items:center;margin:10px 0}
+    .table{width:100%;border-collapse:collapse; background:rgba(255,255,255,.85); backdrop-filter:saturate(150%) blur(8px); -webkit-backdrop-filter:saturate(150%) blur(8px)}
+    .table th,.table td{border:1px solid rgba(229,231,235,.7);padding:10px;vertical-align:middle;background:transparent}
+    .table th{background:rgba(255,255,255,.92);text-align:left}
+    /* Actions column base width */
+    .col-actions{width:180px; text-align:center}
+    /* News + Ann: keep td as table-cell for equal row heights; stack buttons via block */
+    #newsTableBody td.actions, #annTableBody td.actions{
+      display:table-cell !important; /* restore native behavior */
+      vertical-align:middle;
+      text-align:center;
+      white-space:normal;
+      padding:10px; /* same as other cells */
+    }
+    #newsTableBody td.actions .btn, #annTableBody td.actions .btn{
+      display:block;
+      margin:4px auto 0; /* stack with small gap, centered */
+      line-height:1;
+    }
+    #newsTableBody td.actions .btn:first-child, #annTableBody td.actions .btn:first-child{ margin-top:0 }
+    /* Members + Users: buttons horizontal & right aligned */
+    #membersTableBody td.actions, #usersTableBody td.actions{
+      display:table-cell !important; /* ensure equal row height */
+      vertical-align:middle;
+      text-align:right;
+      white-space:nowrap;
+      padding:10px;
+    }
+    #membersTableBody td.actions .btn, #usersTableBody td.actions .btn{
+      display:inline-block;
+      margin:0 0 0 8px;
+      vertical-align:middle;
+    }
+    /* Button tweaks for list actions */
+    .table td.actions button.btn{padding:8px 12px;border-radius:10px}
+    /* Prevent tall images from forcing row height */
+    .table td img{ max-height:40px; width:auto; height:auto; vertical-align:middle }
+    /* Button color variants (scoped to buttons only) */
+    button.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;appearance:none;-webkit-appearance:none;border:0; background:#64748b; color:#fff; cursor:pointer; transition:background-color .15s ease, box-shadow .15s ease; box-shadow:0 1px 2px rgba(0,0,0,.06); padding:8px 12px; border-radius:10px; font-weight:600; line-height:1}
+    button.btn:hover{box-shadow:0 4px 10px rgba(0,0,0,.08)}
+    button.btn:active{box-shadow:0 1px 2px rgba(0,0,0,.06)}
+    button.btn-primary{background:#2563eb}
+    button.btn-success{background:#16a34a}
+    button.btn-danger{background:#dc2626}
+    button.btn-warning{background:#f59e0b;color:#111827}
+    button.btn-warning:hover{background:#d97706;color:#111827}
+    .muted{color:#f59e0b;font-size:14px;font-weight:700}
+    #authStatus{color:#f59e0b;font-weight:700}
+    .admin-wrap header .brand strong{color:#fff}
+    .tabs{display:flex;gap:8px;margin:12px 0}
+    .tabs button{padding:8px 12px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;cursor:pointer}
+    .tabs button.active{background:var(--brand-50);border-color:var(--brand-600)}
+    .form-grid{display:grid;gap:8px}
+    .form-grid label{display:grid;gap:6px}
+    .form-grid input,.form-grid textarea, .form-grid select{padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px}
+    .right{margin-left:auto}
+    /* Class-based tab visibility */
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+
+    /* İşlem hücresini klasik hizalama: satır yüksekliği tam eşitlensin */
+    .table td.actions{
+      text-align: right;
+      white-space: nowrap;
+      /* display:flex; justify-content:flex-end; align-items:center;  <-- KALDIRILDI */
+    }
+    /* Butonları aynı satırda, solid ve sıkı padding ile tut */
+    .table td.actions button.btn{
+      display: inline-block;
+      margin-left: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      vertical-align: middle;
+    }
+
+    /* Sadece button elemanlarına renk uygula (input vs. etkilenmez) */
+    button.btn{
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0;
+      background: #64748b;    /* default solid */
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      line-height: 1;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      transition: background-color .15s ease, box-shadow .15s ease;
+    }
+    button.btn:hover{ box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+    button.btn:active{ box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+    button.btn-primary{ background:#2563eb }
+    button.btn-success{ background:#16a34a }
+    button.btn-danger{  background:#dc2626 }
+    button.btn-warning{ background:#f59e0b; color:#111827 }
+
+    /* Override any outline styles coming from elsewhere so buttons never become transparent */
+    button.btn.btn-outline{ background:#64748b; color:#fff; border:0; opacity:1 }
+    button.btn.btn-outline:hover, button.btn.btn-outline:focus{ background:#64748b; color:#fff; opacity:1 }
+    button.btn.btn-outline.btn-primary{ background:#2563eb; color:#fff }
+    button.btn.btn-outline.btn-success{ background:#16a34a; color:#fff }
+    button.btn.btn-outline.btn-danger{ background:#dc2626; color:#fff }
+    button.btn.btn-outline.btn-warning{ background:#f59e0b; color:#111827 }
+
+    /* Mesajlar sekmesindeki kategori butonlarına renk kodları (varsayılan dolu) */
+    #msgCatFilters .btn{ border:1px solid transparent !important; backdrop-filter:saturate(150%) blur(6px); -webkit-backdrop-filter:saturate(150%) blur(6px) }
+    #msgCatFilters .btn[data-msg-cat="all"]{ background:#64748b !important; color:#fff !important; border-color:#64748b !important }
+    #msgCatFilters .btn[data-msg-cat="contact"]{ background:#2563eb !important; color:#fff !important; border-color:#2563eb !important }
+    #msgCatFilters .btn[data-msg-cat="email"]{ background:#7c3aed !important; color:#fff !important; border-color:#7c3aed !important }
+    #msgCatFilters .btn[data-msg-cat="membership"]{ background:#16a34a !important; color:#fff !important; border-color:#16a34a !important }
+    #msgCatFilters .btn[data-msg-cat="lawyer"]{ background:#dc2626 !important; color:#fff !important; border-color:#dc2626 !important }
+    #msgCatFilters .btn[data-msg-cat="meeting"]{ background:#f59e0b !important; color:#111827 !important; border-color:#f59e0b !important }
+    /* Hover/aktif durumda bir ton koyulaştır */
+    #msgCatFilters .btn[data-msg-cat="all"].active, #msgCatFilters .btn[data-msg-cat="all"]:hover{ background:#475569 !important; border-color:#475569 !important }
+    #msgCatFilters .btn[data-msg-cat="contact"].active, #msgCatFilters .btn[data-msg-cat="contact"]:hover{ background:#1d4ed8 !important; border-color:#1d4ed8 !important }
+    #msgCatFilters .btn[data-msg-cat="email"].active, #msgCatFilters .btn[data-msg-cat="email"]:hover{ background:#6d28d9 !important; border-color:#6d28d9 !important }
+    #msgCatFilters .btn[data-msg-cat="membership"].active, #msgCatFilters .btn[data-msg-cat="membership"]:hover{ background:#15803d !important; border-color:#15803d !important }
+    #msgCatFilters .btn[data-msg-cat="lawyer"].active, #msgCatFilters .btn[data-msg-cat="lawyer"]:hover{ background:#b91c1c !important; border-color:#b91c1c !important }
+    #msgCatFilters .btn[data-msg-cat="meeting"].active, #msgCatFilters .btn[data-msg-cat="meeting"]:hover{ background:#d97706 !important; border-color:#d97706 !important; color:#111827 !important }
+
+    /* Konu kodu rozetleri */
+    .badges{ display:flex; gap:6px; margin-top:4px; flex-wrap:wrap }
+    .badge{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:9999px; font-size:12px; font-weight:700; border:1px solid transparent }
+    .badge-neutral{ background:rgba(248,250,252,.8); color:#334155; border-color:#e5e7eb }
+    .badge-all{ background:#64748b; color:#fff; border-color:#64748b }
+    .badge-contact{ background:#2563eb; color:#fff; border-color:#2563eb }
+    .badge-email{ background:#7c3aed; color:#fff; border-color:#7c3aed }
+    .badge-membership{ background:#16a34a; color:#fff; border-color:#16a34a }
+    .badge-lawyer{ background:#dc2626; color:#fff; border-color:#dc2626 }
+    .badge-meeting{ background:#f59e0b; color:#111827; border-color:#d97706 }
+
+    /* Üyeler sekmesi: filtre butonlarına renk kodları */
+    #membersFilters .btn{ border:1px solid transparent !important; backdrop-filter:saturate(150%) blur(6px); -webkit-backdrop-filter:saturate(150%) blur(6px) }
+    #membersFilters .btn[data-mem-filter="all"]{ background:#64748b !important; color:#fff !important; border-color:#64748b !important }
+    #membersFilters .btn[data-mem-filter="pending"]{ background:#f59e0b !important; color:#111827 !important; border-color:#f59e0b !important }
+    #membersFilters .btn[data-mem-filter="active"]{ background:#16a34a !important; color:#fff !important; border-color:#16a34a !important }
+    #membersFilters .btn[data-mem-filter="passive"]{ background:#dc2626 !important; color:#fff !important; border-color:#dc2626 !important }
+    /* Hover/aktif koyulaştırma */
+    #membersFilters .btn[data-mem-filter="all"].active, #membersFilters .btn[data-mem-filter="all"]:hover{ background:#475569 !important; border-color:#475569 !important }
+    #membersFilters .btn[data-mem-filter="pending"].active, #membersFilters .btn[data-mem-filter="pending"]:hover{ background:#d97706 !important; border-color:#d97706 !important; color:#111827 !important }
+    #membersFilters .btn[data-mem-filter="active"].active, #membersFilters .btn[data-mem-filter="active"]:hover{ background:#15803d !important; border-color:#15803d !important }
+    #membersFilters .btn[data-mem-filter="passive"].active, #membersFilters .btn[data-mem-filter="passive"]:hover{ background:#b91c1c !important; border-color:#b91c1c !important }
+  </style>
+  <script src="vendor/supabase/supabase.js"></script>
+  <script src="supabase-config.js"></script>
+  <!-- Safe Images config: wrap any cross-origin image as blob: in admin to avoid third‑party cookies -->
+  <script src="safe-config-admin.js"></script>
+  <script src="safe-images.js"></script>
+  <script defer src="safe-images-dom.js?v=20251227-01"></script>
+  <script defer src="vendor/pdf-lib/pdf-lib.min.js"></script>
+  <script defer src="vendor/fontkit/fontkit.umd.min.js"></script>
+  <!-- DOCX templating libs will be lazy-loaded in admin.js (local vendor first, then CDN if allowed) -->
+  <script defer src="admin.js?v=20251227-01"></script>
+</head>
+<body>
+  <div class="admin-wrap">
+    <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;">
+      <div class="brand" style="gap:8px">
+        <img src="ilke-logo.png" alt="İLKE SEN" class="logo" style="width:28px;height:28px"/>
+        <strong>Yönetim Paneli</strong>
+      </div>
+      <div id="authStatus" class="muted">Oturum kontrol ediliyor...</div>
+    </header>
+
+    <section id="loginSection" class="card auth-card">
+      <h2>Giriş</h2>
+      <form id="loginForm" class="form-grid">
+        <label>
+          <span>E-posta</span>
+          <input type="email" name="email" required autocomplete="email"/>
+        </label>
+        <label>
+          <span>Şifre</span>
+          <input type="password" name="password" required autocomplete="current-password"/>
+        </label>
+        <div id="recaptchaLogin" class="recaptcha-wrap">
+          <div id="recaptcha-login-container"></div>
+          <div id="captcha-login-fallback" hidden>
+            <label style="display:flex;gap:6px;align-items:center">
+              <input type="checkbox" id="captchaLoginAgree" />
+              <span>Robot olmadığımı onaylıyorum</span>
+            </label>
+          </div>
+        </div>
+        <button id="loginSubmitBtn" class="btn btn-primary" type="submit">Giriş Yap</button>
+      </form>
+    </section>
+
+    <section id="adminSection" hidden>
+      <div class="tabs">
+        <button data-tab="news" class="active">Haberler</button>
+        <button data-tab="ann">Duyurular</button>
+        <button data-tab="msgs">Mesajlar</button>
+        <button data-tab="pages">Sayfalar</button>
+        <button data-tab="posters">Afiş</button>
+        <button data-tab="reports">Rapor</button>
+        <button data-tab="docs">Evrak Modülü</button>
+        <button data-tab="benefits">Üyelere Özel</button>
+        <button data-tab="founders">Kurucular</button>
+        <button data-tab="chairman">Genel Başkan</button>
+        <button data-tab="members">Üyeler</button>
+        <button data-tab="users">Kullanıcılar</button>
+        <button data-tab="settings">Ayarlar</button>
+        <span class="right"></span>
+        <button id="logoutBtn" class="btn btn-danger" type="button">Çıkış</button>
+      </div>
+
+      <!-- HABERLER -->
+      <div id="tab-news" class="tab-panel active">
+        <div class="toolbar">
+          <button id="newNewsBtn" class="btn btn-primary">Yeni Haber</button>
+          <span class="muted">Yayımlananlar en üstte listelenir.</span>
+        </div>
+        <table class="table" aria-label="Haberler Tablosu">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Özet</th>
+              <th>Yayınlanma Durumu</th>
+              <th>Yayınlanma Tarihi</th>
+              <th>Yayından Kaldırılma Tarihi</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="newsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- DUYURULAR -->
+      <div id="tab-ann" class="tab-panel">
+        <div class="toolbar">
+          <button id="newAnnBtn" class="btn btn-primary">Yeni Duyuru</button>
+          <span class="muted">Yayımlananlar en üstte listelenir.</span>
+        </div>
+        <table class="table" aria-label="Duyurular Tablosu">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>İçerik</th>
+              <th>Yayınlanma Durumu</th>
+              <th>Yayınlanma Tarihi</th>
+              <th>Yayından Kaldırılma Tarihi</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="annTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- MESAJLAR -->
+      <div id="tab-msgs" class="tab-panel">
+        <div class="toolbar">
+          <div id="msgCatFilters" class="btn-group">
+            <button class="btn btn-outline active" data-msg-cat="all">Tümü</button>
+            <button class="btn btn-outline" data-msg-cat="contact">İletişim</button>
+            <button class="btn btn-outline" data-msg-cat="email">Mail</button>
+            <button class="btn btn-outline" data-msg-cat="membership">Üyelik Başvurusu</button>
+            <button class="btn btn-outline" data-msg-cat="lawyer">Avukatlık Talebi</button>
+            <button class="btn btn-outline" data-msg-cat="meeting">Görüşme Talebi</button>
+          </div>
+          <button id="refreshMsgsBtn" class="btn btn-outline right">Yenile</button>
+        </div>
+        <table class="table" aria-label="Mesajlar Tablosu">
+          <thead>
+            <tr>
+              <th>Ad</th>
+              <th>E-posta</th>
+              <th>Konu</th>
+              <th>Tarih</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="msgsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- SAYFALAR -->
+      <div id="tab-pages" class="tab-panel">
+        <div class="toolbar">
+          <button id="newPageBtn" class="btn btn-primary">Yeni Sayfa</button>
+          <span class="muted">Statik içerik sayfaları (ör. Vizyon, Misyon...).</span>
+        </div>
+        <table class="table" aria-label="Sayfalar Tablosu">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Slug</th>
+              <th>Durum</th>
+              <th>Tarih</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="pagesTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- AFİŞLER -->
+      <div id="tab-posters" class="tab-panel">
+        <div class="toolbar">
+          <button id="newPosterBtn" class="btn btn-primary">Yeni Afiş</button>
+          <span class="muted">Görsel ve metin içeren afişleri yönetin.</span>
+        </div>
+        <table class="table" aria-label="Afişler Tablosu">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Durum</th>
+              <th>Yayınlanma Tarihi</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="postersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- RAPORLAR -->
+      <div id="tab-reports" class="tab-panel">
+        <div class="toolbar">
+          <button id="newReportBtn" class="btn btn-primary">Yeni Rapor</button>
+          <span class="muted">PDF/Word raporlarını yükleyin ve yayınlayın.</span>
+        </div>
+        <table class="table" aria-label="Raporlar Tablosu">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Durum</th>
+              <th>Yayınlanma Tarihi</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- EVRAK MODÜLÜ -->
+      <div id="tab-docs" class="tab-panel">
+        <div class="toolbar">
+          <div id="docsSubTabs" class="btn-group">
+            <button class="btn btn-outline active" id="incomingSubTabBtn" data-docs-subtab="incoming">Gelen Evrak</button>
+            <button class="btn btn-outline" id="outgoingSubTabBtn" data-docs-subtab="outgoing">Giden Evrak</button>
+          </div>
+          <button id="newIncomingDocBtn" class="btn btn-primary right" type="button">Yeni Gelen Evrak</button>
+          <button id="newOutgoingDocBtn" class="btn btn-primary right" type="button" style="display:none">Yeni Giden Evrak</button>
+        </div>
+        <table class="table" aria-label="Gelen Evrak Tablosu">
+          <thead>
+            <tr>
+              <th>Kayıt Sıra No</th>
+              <th>Geldiği Kişi/Kurum</th>
+              <th>Tarihi</th>
+              <th>Sayısı</th>
+              <th>Eki</th>
+              <th>Konusu</th>
+              <th>Muhafaza Dosya No</th>
+              <th>Dosya</th>
+            </tr>
+          </thead>
+          <tbody id="incomingDocsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- ÜYELERE ÖZEL (Anlaşmalı İş Yerleri) -->
+      <div id="tab-benefits" class="tab-panel">
+        <div class="toolbar">
+          <button id="newBenefitBtn" class="btn btn-primary">Yeni İş Yeri</button>
+          <span class="muted">Anlaşmalı iş yerlerini yönetin. Logo, iletişim ve indirim oranlarını ekleyin.</span>
+        </div>
+        <table class="table" aria-label="Üyelere Özel İş Yerleri">
+          <thead>
+            <tr>
+              <th>Logo</th>
+              <th>Firma</th>
+              <th>İndirim</th>
+              <th>İletişim</th>
+              <th>Durum</th>
+              <th>Sıra</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="benefitsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- KURUCULAR -->
+      <div id="tab-founders" class="tab-panel">
+        <div class="toolbar">
+          <button id="newFounderBtn" type="button" class="btn btn-primary">Yeni Kurucu</button>
+          <span class="muted">1–3–3 düzeninde sıralama için "Sıra" değerini kullanın (1 en üstte).</span>
+        </div>
+        <table class="table" aria-label="Kurucular Tablosu">
+          <thead>
+            <tr>
+              <th>Görsel</th>
+              <th>Ad Soyad</th>
+              <th>Sıra</th>
+              <th>Durum</th>
+              <th class="col-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="foundersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- GENEL BAŞKAN -->
+      <div id="tab-chairman" class="tab-panel">
+        <div class="toolbar">
+          <span class="muted">Sol tarafta fotoğraf ve kadraj; sağ tarafta mesaj metni.</span>
+          <button id="reloadChairmanBtn" class="btn btn-outline right" type="button">Yenile</button>
+        </div>
+        <div id="chairmanPanel"></div>
+      </div>
+
+      <!-- ÜYELER -->
+      <div id="tab-members" class="tab-panel">
+        <div class="toolbar">
+          <button id="newMemberBtn" class="btn btn-primary">Yeni Üye</button>
+          <span class="muted">Üye kayıtlarını yönetin. "Üyeliği Pasife Al" ve "Kimlik Gönder" eylemleri için listedeki butonları kullanın.</span>
+        </div>
+        <div id="membersFilters" class="btn-group" style="display:flex;gap:8px;margin:6px 0;">
+          <button class="btn btn-outline active" data-mem-filter="all">Tümü</button>
+          <button class="btn btn-outline" data-mem-filter="pending">Onay bekleyenler</button>
+          <button class="btn btn-outline" data-mem-filter="active">Aktif</button>
+          <button class="btn btn-outline" data-mem-filter="passive">Pasif</button>
+        </div>
+        <table class="table" aria-label="Üyeler Tablosu">
+          <thead>
+            <tr>
+              <th>Üye No</th>
+              <th>Ad Soyad</th>
+              <th>E-posta</th>
+              <th>Telefon</th>
+              <th>Durum</th>
+              <th>Kayıt Tarihi</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- KULLANICILAR (Yetki) -->
+      <div id="tab-users" class="tab-panel">
+        <div class="toolbar">
+          <button id="newAdminUserBtn" class="btn btn-primary">Yetkili Kullanıcı Ekle</button>
+          <span class="muted">Sekme bazlı erişim yetkisi tanımlayın.</span>
+        </div>
+        <table class="table" aria-label="Kullanıcılar Tablosu">
+          <thead>
+            <tr>
+              <th>E-posta</th>
+              <th>Roller</th>
+              <th>İzinli Sekmeler</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- AYARLAR (FOOTER) -->
+      <div id="tab-settings" class="tab-panel">
+        <form id="settingsForm" class="form-grid" style="max-width:680px">
+          <label>
+            <span>Footer Logo URL</span>
+            <input type="text" name="footer_logo_url" placeholder="ör. ilke-logo.png" />
+          </label>
+          <label>
+            <span>Adres</span>
+            <input type="text" name="footer_address" placeholder="Çankaya, Ankara" />
+          </label>
+          <label>
+            <span>E-posta</span>
+            <input type="email" name="footer_email" placeholder="info@ilkesendika.org" />
+          </label>
+          <label>
+            <span>Telefon</span>
+            <input type="text" name="footer_phone" placeholder="0 (312) 000 00 00" />
+          </label>
+          <hr />
+          <div class="muted">Sosyal Medya Linkleri (tam URL giriniz)</div>
+          <label>
+            <span>Twitter</span>
+            <input type="url" name="social_twitter" placeholder="https://twitter.com/..." />
+          </label>
+          <label>
+            <span>Facebook</span>
+            <input type="url" name="social_facebook" placeholder="https://facebook.com/..." />
+          </label>
+          <label>
+            <span>Instagram</span>
+            <input type="url" name="social_instagram" placeholder="https://instagram.com/..." />
+          </label>
+          <label>
+            <span>YouTube</span>
+            <input type="url" name="social_youtube" placeholder="https://youtube.com/@..." />
+          </label>
+
+          <hr />
+          <div class="muted">reCAPTCHA</div>
+          <label>
+            <span>reCAPTCHA Site Key</span>
+            <input type="text" name="recaptcha_site_key" placeholder="6L... (site anahtarı)" />
+          </label>
+          <div class="muted">Not: reCAPTCHA Secret Key çok hassastır, frontend'de tutulmamalıdır. Sunucu tarafında saklayınız (Edge Function/Backend). İsterseniz referans amaçlı aşağıya şifreli/saklı bir alana sadece yönetici görebilecek şekilde yazabilirsiniz.</div>
+          <label>
+            <span>reCAPTCHA Secret Key (opsiyonel - sadece yönetici gözükür)</span>
+            <input type="password" name="recaptcha_secret_key" placeholder="6L... (secret anahtarı)" />
+          </label>
+
+          <div style="display:flex;gap:8px">
+            <button id="saveSettingsBtn" class="btn btn-primary" type="button">Kaydet</button>
+            <button id="reloadSettingsBtn" class="btn btn-outline" type="button">Yenile</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal" class="card" style="position:fixed;inset:0;max-width:1100px;width:min(1100px,96vw);margin:auto;border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;z-index:50">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <strong id="modalTitle">Düzenle</strong>
+      <button id="modalClose" class="btn btn-outline" aria-label="Kapat">Kapat</button>
+    </div>
+    <form id="modalForm" class="form-grid"></form>
+  </div>
+
+</body>
+</html>

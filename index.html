@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" id="csp-meta" content="default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://*.supabase.co; frame-src https://www.google.com https://www.gstatic.com; base-uri 'self'; form-action 'self'" />
+  <script>
+    (function(){
+      try{
+        var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (!isLocal) return;
+        var m = document.getElementById('csp-meta');
+        if (!m) return;
+        var relaxed = "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src *; frame-src https://www.google.com https://www.gstatic.com; base-uri 'self'; form-action 'self'";
+        m.setAttribute('content', relaxed);
+      }catch(e){}
+    })();
+  </script>
+  <title>İlke Sendika</title>
+  <meta name="description" content="İlke Sendika - Hak, adalet ve dayanışma için bir arada." />
+  <meta name="theme-color" content="#0B3A60" />
+  <meta property="og:title" content="İlke Sendika" />
+  <meta property="og:description" content="Hak, adalet ve dayanışma için bir arada." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="ilkesen.jpg" />
+
+  <link rel="icon" href="ilkesen.jpg" type="image/jpeg" />
+  <link rel="stylesheet" href="styles.css?v=20251227-02" />
+  <!-- Handwriting font for banner motto -->
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+  <!-- Self-hosted Supabase client (UMD) -->
+  <script src="vendor/supabase/supabase.js"></script>
+  <!-- Project Supabase config -->
+  <script src="supabase-config.js"></script>
+  <!-- Safe Images config (temporary: wrap all cross-origin for diagnostics) -->
+  <script>
+    // Set to true to wrap any cross-origin http(s) image via fetch->blob: (prevents third‑party cookies)
+    window.__SAFE_IMG_WRAP_ALL = true;
+    // Optional: restrict to specific hosts in addition to Supabase (kept minimal)
+    window.__SAFE_IMG_HOSTS = ['supabase.co'];
+  </script>
+  <!-- Safe image shims (prevent Cloudflare cookie noise) -->
+  <script src="safe-images.js"></script>
+  <script defer src="safe-images-dom.js"></script>
+  <!-- Initialize shared UI behaviors (cache-busted) -->
+  <script defer src="app.js?v=20260101-01"></script>
+  <script>
+    // Fallbacks in case app.js export is missing due to cache or parse order
+    (function(){
+      window.IlkeSendikaReload = window.IlkeSendikaReload || {};
+      const sb = () => window.ilkeSupabase;
+
+      if (typeof window.IlkeSendikaReload.getPolicy !== 'function'){
+        window.IlkeSendikaReload.getPolicy = async function(key){
+          try{
+            if (!sb()) return '';
+            const { data, error } = await sb()
+              .from('settings')
+              .select('value')
+              .eq('key', key)
+              .maybeSingle();
+            if (error) return '';
+            return data?.value || '';
+          }catch(e){ return ''; }
+        };
+      }
+
+      if (typeof window.IlkeSendikaReload.loadFooterSettings !== 'function'){
+        window.IlkeSendikaReload.loadFooterSettings = async function(){
+          if (!sb()) return;
+          try{
+            const { data, error } = await sb()
+              .from('settings')
+              .select('key,value')
+              .in('key', ['footer_logo_url','footer_address','footer_email','footer_phone','social_twitter','social_facebook','social_instagram']);
+            if (error) throw error;
+            const map = new Map((data||[]).map(r => [r.key, r.value]));
+            const buster = (url)=>{ try{ const u=new URL(url, location.origin); u.searchParams.set('v',Date.now()); return u.toString(); }catch{return url;} };
+            const logoUrl = map.get('footer_logo_url') || 'ilke-logo.png';
+            const footerLogo = document.getElementById('footerLogo'); if (footerLogo && logoUrl) footerLogo.src = buster(logoUrl);
+            const headerLogo = document.getElementById('headerLogo'); if (headerLogo && logoUrl) headerLogo.src = buster(logoUrl);
+            const addrEl = document.getElementById('footerAddress');
+            if (addrEl){
+              const fullAddr = map.get('footer_address') || addrEl.textContent || '';
+              const parts = String(fullAddr).split(',').map(s=>s.trim()).filter(Boolean);
+              const short = parts.length >= 2 ? parts.slice(-2).join(', ') : parts.join(', ');
+              addrEl.textContent = short;
+            }
+            const emailEl = document.getElementById('footerEmail'); if (emailEl) emailEl.textContent = map.get('footer_email') || emailEl.textContent;
+            const phoneEl = document.getElementById('footerPhone'); if (phoneEl) phoneEl.textContent = map.get('footer_phone') || phoneEl.textContent;
+            function setLink(id, url){ const a=document.getElementById(id); if(!a) return; if(url&&/^https?:\/\//i.test(url)){a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.style.display='';} else {a.style.display='none';} }
+            setLink('socialTwitter', map.get('social_twitter')||'');
+            setLink('socialFacebook', map.get('social_facebook')||'');
+            setLink('socialInstagram', map.get('social_instagram')||'');
+          }catch(e){ console.warn('fallback loadFooterSettings error:', e); }
+        }
+      }
+
+      if (typeof window.IlkeSendikaReload.loadNewsCards !== 'function'){
+        window.IlkeSendikaReload.loadNewsCards = async function(){
+          if (!sb()) return;
+          const root = document.getElementById('newsCards'); if (!root) return;
+          try{
+            const { data, error } = await sb()
+              .from('news')
+              .select('id,title,summary,published_at,unpublish_at,image_url,status')
+              .eq('status','published')
+              .order('published_at',{ascending:false})
+              .limit(9);
+            if (error) throw error;
+            const now = Date.now();
+            const items = (data||[]).filter(n=>{ const u=n.unpublish_at?new Date(n.unpublish_at).getTime():null; return !u||u>now; });
+            root.innerHTML = '';
+            items.forEach(n => {
+              const card=document.createElement('article'); card.className='card'; card.setAttribute('role','listitem');
+              if(n.image_url){ const img=document.createElement('img'); img.src=n.image_url; img.alt=n.title||'Haber görseli'; img.style.borderRadius='10px'; card.appendChild(img); }
+              const h3=document.createElement('h3'); h3.textContent=n.title||'Haber';
+              const p=document.createElement('p'); p.textContent=n.summary||'';
+              const a=document.createElement('a'); a.className='card-link'; a.href=`news.html?id=${encodeURIComponent(n.id)}`; a.textContent='Haberi Oku →';
+              card.appendChild(h3); card.appendChild(p); card.appendChild(a); root.appendChild(card);
+            });
+          }catch(e){ console.warn('fallback loadNewsCards error:', e); }
+        }
+      }
+
+      if (typeof window.IlkeSendikaReload.loadSliderNews !== 'function'){
+  window.IlkeSendikaReload.loadSliderNews = async function(){
+    if (!sb()) return;
+    const slidesRoot = document.getElementById('sliderSlides'); if (!slidesRoot) return;
+    try{
+      const { data, error } = await sb()
+        .from('news')
+        .select('id,title,summary,image_url,cover_image_url,published_at,unpublish_at,is_featured,status')
+        .eq('status','published')
+        .order('is_featured',{ascending:false})
+        .order('published_at',{ascending:false})
+        .limit(6);
+      if (error) throw error;
+
+      const now = Date.now();
+      const items=(data||[]).filter(n=>{ const u=n.unpublish_at?new Date(n.unpublish_at).getTime():null; return !u||u>now; });
+      slidesRoot.innerHTML='';
+
+      // cover meta: key|z=...,ox=...,oy=...,oxp=...,oyp=...
+      function splitMetaUrl(u){
+  const s=String(u||''); const i=s.indexOf('|');
+  if(i<0) return { url:s, meta:null };
+  const base = s.slice(0,i); const tail = s.slice(i+1);
+  const meta = { z:1, ox:0, oy:0, oxp:null, oyp:null, zm:null, oxm:null, oym:null, oxpm:null, oypm:null };
+  tail.split(',').forEach(p=>{
+    const [k,v] = p.split('='); const n=Number(v);
+    if(k==='z' && isFinite(n)) meta.z=n;
+    if(k==='ox' && isFinite(n)) meta.ox=Math.round(n);
+    if(k==='oy' && isFinite(n)) meta.oy=Math.round(n);
+    if(k==='oxp' && isFinite(n)) meta.oxp=n;
+    if(k==='oyp' && isFinite(n)) meta.oyp=n;
+    if(k==='zm' && isFinite(n)) meta.zm=n;
+    if(k==='oxm' && isFinite(n)) meta.oxm=Math.round(n);
+    if(k==='oym' && isFinite(n)) meta.oym=Math.round(n);
+    if(k==='oxpm' && isFinite(n)) meta.oxpm=n;
+    if(k==='oypm' && isFinite(n)) meta.oypm=n;
+  });
+  return { url: base, meta };
+}
+
+      items.forEach((n,idx)=>{
+        const art=document.createElement('article');
+        art.className='slide'+(idx===0?' current':'');
+        art.setAttribute('role','listitem');
+
+        // Image underlay (prefer cover)
+        const raw = n.cover_image_url || n.image_url || n.cover_image_url;
+        if(raw){
+          const { url, meta } = splitMetaUrl(raw);
+          const holder = document.createElement('div');
+          holder.style.position='absolute';
+          holder.style.inset='0';
+          holder.style.overflow='hidden';
+          holder.style.background='#fff';
+
+          const bg = document.createElement('div');
+          bg.style.position='absolute';
+          bg.style.inset='0';
+          bg.style.backgroundColor='#fff';
+          bg.style.backgroundImage=`url(${url})`;
+          bg.style.backgroundRepeat='no-repeat';
+
+          if (meta){
+  const isMobile = window.matchMedia('(max-width: 960px)').matches;
+  const z = Math.max(1, Number((isMobile && isFinite(meta.zm)) ? meta.zm : (meta.z||1)));
+  bg.style.backgroundSize = `${Math.round(100*z)}%`;
+  const hasPercent = isMobile
+    ? ((meta.oxpm != null && isFinite(meta.oxpm)) || (meta.oypm != null && isFinite(meta.oypm)))
+    : ((meta.oxp  != null && isFinite(meta.oxp )) || (meta.oyp  != null && isFinite(meta.oyp )));
+  if (hasPercent){
+    const x = isMobile
+      ? `calc(50% + ${(meta.oxpm != null && isFinite(meta.oxpm)) ? meta.oxpm : 0}%)`
+      : `calc(50% + ${(meta.oxp  != null && isFinite(meta.oxp )) ? meta.oxp  : 0}%)`;
+    const y = isMobile
+      ? `calc(50% + ${(meta.oypm != null && isFinite(meta.oypm)) ? meta.oypm : 0}%)`
+      : `calc(50% + ${(meta.oyp  != null && isFinite(meta.oyp )) ? meta.oyp  : 0}%)`;
+    bg.style.backgroundPosition = `${x} ${y}`;
+  } else {
+    const ox = isMobile ? (meta.oxm || 0) : (meta.ox || 0);
+    const oy = isMobile ? (meta.oym || 0) : (meta.oy || 0);
+    bg.style.backgroundPosition = `calc(50% + ${ox}px) calc(50% + ${oy}px)`;
+  }
+} else {
+   bg.style.backgroundSize = 'cover';
+   bg.style.backgroundPosition = 'center center';
+}
+holder.appendChild(bg);
+          art.appendChild(holder);
+        }
+
+        // Overlay content (title link)
+        const wrap=document.createElement('div'); wrap.className='slide-content';
+        const h3=document.createElement('h3'); h3.className='slide-title';
+        const a=document.createElement('a'); a.href=`news.html?id=${encodeURIComponent(n.id)}`; a.textContent=n.title||'Haber';
+        h3.appendChild(a); wrap.appendChild(h3); art.appendChild(wrap);
+        slidesRoot.appendChild(art);
+      });
+
+      // Ask main slider to re-evaluate
+      document.dispatchEvent(new CustomEvent('slider:updated'));
+    }catch(e){ console.warn('fallback loadSliderNews error:', e); }
+  }
+}
+
+      if (typeof window.IlkeSendikaReload.loadAnnouncements !== 'function'){
+        window.IlkeSendikaReload.loadAnnouncements = async function(){
+          if (!sb()) return;
+          const ul=document.getElementById('announcementsList'); if(!ul) return;
+          try{
+            const { data, error } = await sb()
+              .from('announcements')
+              .select('id,title,body,image_url,published_at,unpublish_at,status')
+              .eq('status','published')
+              .order('published_at',{ascending:false})
+              .limit(6);
+            if (error) throw error;
+            const now=Date.now();
+            const items=(data||[]).filter(a=>{ const u=a.unpublish_at?new Date(a.unpublish_at).getTime():null; return !u||u>now; });
+            ul.innerHTML='';
+            items.forEach(a=>{
+              const li=document.createElement('li');
+              if(a.image_url){ const img=document.createElement('img'); img.src=a.image_url; img.alt=a.title||'Duyuru görseli'; img.style.width='48px'; img.style.height='48px'; img.style.objectFit='cover'; img.style.borderRadius='8px'; img.style.marginRight='8px'; img.style.verticalAlign='middle'; li.appendChild(img); }
+              const strong=document.createElement('strong'); strong.textContent=(a.title||'Duyuru')+': ';
+              const span=document.createElement('span'); span.textContent=a.body||'';
+              li.appendChild(strong); li.appendChild(span); ul.appendChild(li);
+            });
+          }catch(e){ console.warn('fallback loadAnnouncements error:', e); }
+        }
+      }
+
+      // Auto-run fallbacks on DOM ready if exports were missing
+      document.addEventListener('DOMContentLoaded', ()=>{
+        window.IlkeSendikaReload.loadFooterSettings && window.IlkeSendikaReload.loadFooterSettings();
+        window.IlkeSendikaReload.loadNewsCards && window.IlkeSendikaReload.loadNewsCards();
+        window.IlkeSendikaReload.loadAnnouncements && window.IlkeSendikaReload.loadAnnouncements();
+        window.IlkeSendikaReload.loadSliderNews && window.IlkeSendikaReload.loadSliderNews();
+      });
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
+  
+  <!-- Hero (mockup-based) -->
+  
+  
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img id="headerLogo" src="ilke-logo.png" alt="İLKE SEN Logosu" class="logo" />
+        <span class="brand-name">İLKE <span class="brand-sen">SEN</span></span>
+      </div>
+      <nav class="nav" aria-label="Ana menü">
+        <button class="nav-toggle" aria-expanded="false" aria-controls="navMenu" aria-label="Menüyü aç/kapat">☰</button>
+<ul id="navMenu" class="nav-list">
+  <li><a href="index.html">Anasayfa</a></li>
+  <li class="has-sub"><a href="#">Kurumsal</a>
+    <ul class="submenu">
+      <li><a href="/genel-baskan">Genel Başkan</a></li>
+      <li><a href="/vizyon">Vizyon</a></li>
+      <li><a href="/misyon">Misyon</a></li>
+      <li><a href="/amac">Amaç</a></li>
+      <li><a href="/kurucular">Kurucular</a></li>
+      <li><a href="/yonetim-kurulu">Yönetim Kurulu</a></li>
+      <li><a href="/denetleme-kurulu">Denetleme Kurulu</a></li>
+      <li><a href="/disiplin-kurulu">Disiplin Kurulu</a></li> 
+    </ul>
+  </li>
+   <li class="has-sub"><a href="#">Basın-Yayın</a>
+      <ul class="submenu">
+          <li><a href="/afis">Afiş</a></li>
+          <li><a href="/rapor">Rapor</a></li>
+      </ul>
+    </li>
+    <li class="has-sub"><a href="#">Mevzuat</a>
+      <ul class="submenu">
+          <li><a href="/kanun">4688 Sayılı Kanun</a></li>
+      </ul>
+      </li>
+    <li><a href="/uyelere-ozel">Üyelere Özel</a></li>
+    <li><a href="contact.html">İletişim</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero hero-brand">
+    <div class="container">
+      <h1>İLKEYLE BİRLİK,<br/>GÜÇLE GELECEK</h1>
+    </div>
+  </section>
+
+  <main id="main">
+    
+    
+    <!-- Faaliyetlerimiz -->
+    <section class="section home-features wave-section wave-bottom" aria-label="Faaliyetlerimiz">
+      <div class="container home-cards">
+        <article class="card feature-card">
+          <img src="icons/people.svg" alt="Toplantı" width="64" height="64" style="margin:auto" onerror="this.remove()" />
+          <h3>Temsil ve Destek</h3>
+          <p>Üyelerimizin haklarını kurumsal ve hukuki düzlemde temsil ederiz.</p>
+        </article>
+        <article class="card feature-card">
+          <img src="icons/megaphone.svg" alt="Duyuru" width="64" height="64" style="margin:auto" onerror="this.remove()" />
+          <h3>Eğitim ve İletişim</h3>
+          <p>Bilgilendirici etkinlikler ve yayınlarla güçlü iletişim kurarız.</p>
+        </article>
+        <article class="card feature-card">
+          <img src="icons/law.svg" alt="Hukuk" width="64" height="64" style="margin:auto" onerror="this.remove()" />
+          <h3>Hukuki Danışmanlık</h3>
+          <p>Uzman avukatlarımızla ücretsiz danışmanlık sağlar, süreçleri takip ederiz.</p>
+        </article>
+      </div>
+    </section>
+    <!-- Slider (Haberler) moved to top -->
+    <section class="section slider-wrap wave-section wave-top" aria-label="Haberler Slider">
+      <div class="container">
+        <div class="slider" data-slider>
+          <button class="slider-btn prev" aria-label="Önceki" data-prev>‹</button>
+          <div class="slides" id="sliderSlides" data-slides role="list"></div>
+          <button class="slider-btn next" aria-label="Sonraki" data-next>›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hakkımızda moved under banner -->
+    <section id="hakkimizda" class="section wave-section wave-bottom">
+      <div class="container">
+        <div class="card">
+          <div class="grid two">
+            <div>
+              <h2>Hakkımızda</h2>
+              <p>
+                İlke Sendika; adalet, şeffaflık ve dayanışma ilkelerini merkeze alarak çalışanların yanında durur. 
+                Çalışma hayatında onurlu bir gelecek için örgütlü mücadelenin gücüne inanıyoruz.
+              </p>
+              <ul class="checks">
+                <li>Güçlü temsil ve savunuculuk</li>
+                <li>Şeffaf yönetim ve hesap verebilirlik</li>
+                <li>Eğitim, danışmanlık ve destek</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Önemli Günler</h3>
+              <section id="homePosters" class="home-posters" aria-label="Önemli Günler">
+                <div class="hp-track" data-hp-track></div>
+                <button class="hp-nav hp-prev" data-hp-prev aria-label="Önceki">‹</button>
+                <button class="hp-nav hp-next" data-hp-next aria-label="Sonraki">›</button>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    
+
+    <!-- Duyurular -->
+    <section id="duyurular" class="section wave-section wave-top">
+      <div class="container">
+        <h2>Duyurular</h2>
+        <div class="card">
+          <ul class="announcements" id="announcementsList">
+          <li><strong>Genel Kurul:</strong> 12 Aralık 2025 tarihinde genel kurul yapılacaktır.</li>
+          <li><strong>Üyelik Aidatları:</strong> Yeni dönem aidatları ve ödeme kanalları güncellendi.</li>
+          <li><strong>Temsilci Başvuruları:</strong> Bölge temsilciliği için başvurular açıldı.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    
+
+    <section id="hakkimizda" class="section" hidden>
+      <div class="container grid two">
+        <div>
+          <h2>Hakkımızda</h2>
+          <p>
+            İlke Sendika; adalet, şeffaflık ve dayanışma ilkelerini merkeze alarak çalışanların yanında durur. 
+            Çalışma hayatında onurlu bir gelecek için örgütlü mücadelenin gücüne inanıyoruz.
+          </p>
+          <ul class="checks">
+            <li>Güçlü temsil ve savunuculuk</li>
+            <li>Şeffaf yönetim ve hesap verebilirlik</li>
+            <li>Eğitim, danışmanlık ve destek</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Değerlerimiz</h3>
+          <p>İlkelilik, hakkaniyet ve ortak akıl ile hareket ederiz.</p>
+          <div class="stats">
+            <div><strong>81</strong><span>İl</span></div>
+            <div><strong>1000+</strong><span>Üye</span></div>
+            <div><strong>24/7</strong><span>Destek</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="haberler" class="section wave-section wave-bottom">
+      <div class="container">
+        <h2>Haberler</h2>
+        <div id="newsCards" class="grid three cards" role="list"></div>
+      </div>
+    </section>
+
+    <!-- CTA Cards: Avukatlık Talebi / Görüşme Talebi / Üyelik Başvurusu -->
+    <section class="section cta-section" aria-label="Hızlı İşlemler">
+      <div class="container home-cards">
+        <a class="card cta-card" href="avukatlik-talebi.html">
+          <img src="icons/gavel.png" alt="Avukatlık Talebi" width="64" height="64" onerror="this.remove()" />
+          <h3>Avukatlık Talebi</h3>
+        </a>
+        <a class="card cta-card" href="gorusme-talebi.html">
+          <img src="icons/meeting.png" alt="Görüşme Talebi" width="64" height="64" onerror="this.remove()" />
+          <h3>Görüşme Talebi</h3>
+        </a>
+        <a class="card cta-card" href="uyelik-basvurusu.html">
+          <img src="icons/application.png" alt="Üyelik Başvurusu" width="64" height="64" onerror="this.remove()" />
+          <h3>Üyelik Başvurusu</h3>
+        </a>
+      </div>
+    </section>
+
+    
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <img id="footerLogo" src="ilke-logo.png" alt="İlke Sendika Logosu" class="logo" />
+        <span class="brand-name">İLKE <span class="brand-sen">SEN</span></span>
+      </div>
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h4>İletişim</h4>
+          <p id="footerAddress">Beştepe Mahallesi Zübeyde Hanım Caddesi No:34, 06560 Yenimahalle/Ankara</p>
+          <p><strong>E-posta:</strong> <span id="footerEmail">genelmerkez@hurriyetciyerelsen.org</span></p>
+          <p><strong>Telefon:</strong> <span id="footerPhone">(0312) 552 40 60</span></p>
+        </div>
+        <div class="footer-col">
+          <h4>Sosyal Medya</h4>
+          <ul class="socials">
+            <li>
+              <a id="socialTwitter" href="#" aria-label="X" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.36 2H21l-6.56 7.49L22 22h-6.78l-5.3-6.9L3.9 22H2l7.06-8.07L2 2h6.86l4.78 6.26L18.36 2Zm-2.37 18h2.35L8.1 4H5.68l10.3 16Z"/></svg>
+                X
+              </a>
+            </li>
+            <li>
+              <a id="socialFacebook" href="#" aria-label="Facebook" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.07C22 6.49 17.52 2 11.93 2 6.35 2 1.86 6.49 1.86 12.07c0 4.99 3.64 9.13 8.4 10v-7.07H7.9v-2.93h2.36V9.41c0-2.33 1.39-3.62 3.52-3.62 1.02 0 2.09.18 2.09.18v2.3h-1.18c-1.17 0-1.53.73-1.53 1.48v1.78h2.61l-.42 2.93h-2.19V22c4.76-.87 8.4-5.01 8.4-9.93Z"/></svg>
+                Facebook
+              </a>
+            </li>
+            <li>
+              <a id="socialInstagram" href="#" aria-label="Instagram" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm5.75-.75a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z"/></svg>
+                Instagram
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Politikalar</h4>
+          <ul class="policies">
+            <li><a id="privacyLink" href="/gizlilik">Gizlilik Politikası</a></li>
+            <li><a id="disclosureLink" href="/aydinlatma">Aydınlatma Metni</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="copyright">© <span id="year"></span> İlke Sendika. Tüm hakları saklıdır.</div>
+    </div>
+  </footer>
+
+  <!-- Policy Modal -->
+  <div id="policyModal" class="card" style="position:fixed;inset:0;max-width:760px;margin:auto;border:1px solid #e5e7eb;border-radius:14px;background:#fff;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;z-index:50">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <strong id="policyTitle">Bilgi</strong>
+      <button id="policyClose" class="btn btn-outline" aria-label="Kapat">Kapat</button>
+    </div>
+    <div id="policyContent" style="max-height:60vh;overflow:auto"></div>
+  </div>
+</body>
+</html>
+

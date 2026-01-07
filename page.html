@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" id="csp-meta" content="default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://*.supabase.co; frame-src https://www.google.com https://www.gstatic.com; base-uri 'self'; form-action 'self'" />
+  <script>
+    (function(){
+      try{
+        var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (!isLocal) return;
+        var m = document.getElementById('csp-meta');
+        if (!m) return;
+        var relaxed = "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src *; frame-src https://www.google.com https://www.gstatic.com; base-uri 'self'; form-action 'self'";
+        m.setAttribute('content', relaxed);
+      }catch(e){}
+    })();
+  </script>
+  <title>Sayfa | İlke Sendika</title>
+  <meta name="theme-color" content="#0B3A60" />
+  <meta name="description" content="İçerik sayfası" />
+  <link rel="icon" href="ilkesen.jpg" type="image/jpeg" />
+  <link rel="stylesheet" href="styles.css?v=20251227-01" />
+  <script src="vendor/supabase/supabase.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="safe-images.js"></script>
+  <script defer src="safe-images-dom.js"></script>
+  <script defer src="page.js?v=20260101-01"></script>
+  <style>
+    .page-wrap{padding:24px 16px}
+    .page-meta{color:#64748b;font-size:14px;margin-bottom:12px}
+    /* Layout: centered container width */
+    .page-layout{display:grid;grid-template-columns:1fr;gap:20px;max-width:1100px;margin:0 auto}
+    /* Hide TOC for clean single column */
+    .toc{display:none !important}
+    .toc .card{padding:12px}
+    .toc h4{margin:0 0 8px}
+    .toc nav{display:flex;flex-direction:column;gap:6px}
+    .toc a{font-size:14px;color:var(--ink);text-decoration:none;padding:6px 8px;border-radius:8px}
+    .toc a:hover{background:rgba(11,58,96,.10);color:var(--brand-600)}
+    .toc .lvl-2{padding-left:0}
+    .toc .lvl-3{padding-left:12px;font-size:13px}
+    /* Content card fills the container */
+    #pageBody.card{width:100%}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
+
+  <!-- Header (same as index.html) -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <a href="index.html" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit">
+          <img id="headerLogo" src="ilke-logo.png" alt="İLKE SEN Logosu" class="logo" />
+          <span class="brand-name">İLKE <span class="brand-sen">SEN</span></span>
+        </a>
+      </div>
+      <nav class="nav" aria-label="Ana menü">
+        <button class="nav-toggle" aria-expanded="false" aria-controls="navMenu" aria-label="Menüyü aç/kapat">☰</button>
+       <ul id="navMenu" class="nav-list">
+  <li><a href="index.html">Anasayfa</a></li>
+  <li class="has-sub"><a href="#">Kurumsal</a>
+    <ul class="submenu">
+      <li><a href="/genel-baskan">Genel Başkan</a></li>
+      <li><a href="/vizyon">Vizyon</a></li>
+      <li><a href="/misyon">Misyon</a></li>
+      <li><a href="/amac">Amaç</a></li>
+      <li><a href="/kurucular">Kurucular</a></li>
+      <li><a href="/yonetim-kurulu">Yönetim Kurulu</a></li>
+      <li><a href="/denetleme-kurulu">Denetleme Kurulu</a></li>
+      <li><a href="/disiplin-kurulu">Disiplin Kurulu</a></li>
+    </ul>
+  </li>
+   <li class="has-sub"><a href="#">Basın-Yayın</a>
+      <ul class="submenu">
+          <li><a href="/afis">Afiş</a></li>
+          <li><a href="/rapor">Rapor</a></li>
+      </ul>
+    </li>
+    <li class="has-sub"><a href="#">Mevzuat</a>
+      <ul class="submenu">
+          <li><a href="/kanun">4688 Sayılı Kanun</a></li>
+      </ul>
+      </li>
+    <li><a href="/uyelere-ozel">Üyelere Özel</a></li>
+    <li><a href="contact.html">İletişim</a></li>
+</ul>
+
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="section">
+      <div class="page-layout">
+        <aside id="tocWrap" class="toc" hidden>
+          <div class="card">
+            <h4>İçindekiler</h4>
+            <nav id="pageToc"></nav>
+          </div>
+        </aside>
+        <div class="page-wrap">
+          <article id="pageDetail">
+            <h1 id="pageTitle">Yükleniyor...</h1>
+            <div class="page-meta" id="pageMeta"></div>
+            <div id="pageBody" class="card"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer (same as index.html) -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <img id="footerLogo" src="ilke-logo.png" alt="İLKE SEN Logosu" class="logo" />
+        <span class="brand-name">İLKE <span class="brand-sen">SEN</span></span>
+      </div>
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h4>İletişim</h4>
+          <p id="footerAddress">Beştepe Mahallesi Zübeyde Hanım Caddesi No:34, 06560 Yenimahalle/Ankara</p>
+          <p><strong>E-posta:</strong> <span id="footerEmail">genelmerkez@hurriyetciyerelsen.org</span></p>
+          <p><strong>Telefon:</strong> <span id="footerPhone">(0312) 552 40 60</span></p>
+        </div>
+        <div class="footer-col">
+          <h4>Sosyal Medya</h4>
+          <ul class="socials">
+            <li>
+              <a id="socialTwitter" href="#" aria-label="X" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.36 2H21l-6.56 7.49L22 22h-6.78l-5.3-6.9L3.9 22H2l7.06-8.07L2 2h6.86l4.78 6.26L18.36 2Zm-2.37 18h2.35L8.1 4H5.68l10.3 16Z"/></svg>
+                X
+              </a>
+            </li>
+            <li>
+              <a id="socialFacebook" href="#" aria-label="Facebook" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.07C22 6.49 17.52 2 11.93 2 6.35 2 1.86 6.49 1.86 12.07c0 4.99 3.64 9.13 8.4 10v-7.07H7.9v-2.93h2.36V9.41c0-2.33 1.39-3.62 3.52-3.62 1.02 0 2.09.18 2.09.18v2.3h-1.18c-1.17 0-1.53.73-1.53 1.48v1.78h2.61l-.42 2.93h-2.19V22c4.76-.87 8.4-5.01 8.4-9.93Z"/></svg>
+                Facebook
+              </a>
+            </li>
+            <li>
+              <a id="socialInstagram" href="#" aria-label="Instagram" style="display:inline-flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm5.75-.75a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z"/></svg>
+                Instagram
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Politikalar</h4>
+          <ul class="policies">
+            <li><a href="/gizlilik">Gizlilik Politikası</a></li>
+            <li><a href="/aydinlatma">Aydınlatma Metni</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="copyright"> <span id="year"></span> İlke Sendika. Tüm hakları saklıdır.</div>
+    </div>
+  </footer>
+
+  <!-- Initialize shared UI behaviors -->
+  <script defer src="app.js?v=20260101-01"></script>
+  <script>
+    // Fallback: ensure getPolicy exists even if app.js export missed it
+    (function(){
+      window.IlkeSendikaReload = window.IlkeSendikaReload || {};
+      if (typeof window.IlkeSendikaReload.getPolicy !== 'function'){
+        window.IlkeSendikaReload.getPolicy = async function(key){
+          try{
+            if (!window.ilkeSupabase) return '';
+            const { data, error } = await window.ilkeSupabase
+              .from('settings')
+              .select('value')
+              .eq('key', key)
+              .maybeSingle();
+            if (error) return '';
+            return data && data.value ? data.value : '';
+          }catch(e){ return ''; }
+        };
+      }
+    })();
+  </script>
+</body>
+</html>

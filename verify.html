@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" id="csp-meta" content="default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://*.supabase.co; frame-src https://www.google.com https://www.gstatic.com; base-uri 'self'; form-action 'self'" />
+  <title>Üyelik Doğrulama | İlke Sendika</title>
+  <meta name="description" content="Üye doğrulama" />
+  <link rel="icon" href="ilkesen.jpg" type="image/jpeg" />
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+  <script src="vendor/supabase/supabase.js"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+  <main id="main" class="section">
+    <div class="container">
+      <article id="verifyCard" class="card" style="max-width:680px;margin:0 auto;position:relative;padding-right:220px">
+        <h1 style="margin-top:0;color:#0f3c69">Üyelik Doğrulama</h1>
+        <img id="verifyLogo" src="/ilke-logo.png" alt="İLKE-SEN" style="position:absolute;right:12px;top:12px;width:192px;height:192px;object-fit:contain" />
+        <div id="verifyStatus" class="text-base" style="margin:8px 0 16px;color:#64748b">Doğrulama yapılıyor...</div>
+        <div id="verifyResult"></div>
+        <script>
+          (async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('t');
+            const statusEl = document.getElementById('verifyStatus');
+            const resultEl = document.getElementById('verifyResult');
+
+            function setResultVerified(member){
+              const m = member || {};
+              const trStatus = (s)=>{ const v=String(s||'').toLowerCase(); if(v==='active') return 'aktif'; if(v==='passive') return 'pasif'; return v||'-'; };
+              resultEl.innerHTML = '';
+              const items = [
+                ['Ad Soyad:', m.full_name || '-'],
+                ['Üye No:', m.membership_no || '-'],
+                ['Durum:', trStatus(m.status)],
+                ['Üyelik Tarihi:', m.join_date ? new Date(m.join_date).toLocaleDateString('tr-TR') : '-']
+              ];
+              for (const [label, value] of items){
+                const row = document.createElement('div');
+                const strong = document.createElement('strong'); strong.textContent = label + ' ';
+                const span = document.createElement('span'); span.textContent = value;
+                row.appendChild(strong); row.appendChild(span);
+                resultEl.appendChild(row);
+              }
+            }
+
+            function setResultError(msg){
+              resultEl.innerHTML = '';
+              const div = document.createElement('div');
+              div.className = 'text-danger';
+              div.textContent = msg;
+              resultEl.appendChild(div);
+            }
+
+            try{
+              if (!window.ilkeSupabase) {
+                statusEl.innerText = 'Sunucu yapılandırması eksik';
+                return;
+              }
+              if (token) {
+                const { data, error } = await window.ilkeSupabase.functions.invoke('verify_membership', {
+                  body: { t: token }
+                });
+                if (error) {
+                  statusEl.innerText = 'Doğrulanamadı';
+                  statusEl.style.color = '#dc2626';
+                  statusEl.style.fontWeight = '800';
+                  statusEl.style.fontSize = '22px';
+                  resultEl.innerHTML = '';
+                  return;
+                }
+                if (data?.ok && data?.verified) {
+                  statusEl.innerText = 'Doğrulama başarılı';
+                  statusEl.style.color = '#16a34a';
+                  statusEl.style.fontWeight = '700';
+                  statusEl.style.fontSize = '20px';
+                  setResultVerified(data.member || {});
+                } else {
+                  statusEl.innerText = 'Doğrulanamadı';
+                  statusEl.style.color = '#dc2626';
+                  statusEl.style.fontWeight = '800';
+                  statusEl.style.fontSize = '22px';
+                  setResultError('✖ Geçersiz ya da eski QR');
+                }
+              } else {
+                statusEl.innerText = 'Doğrulama kodu gerekli';
+                statusEl.style.color = '#64748b';
+                statusEl.style.fontWeight = '500';
+                statusEl.style.fontSize = '16px';
+              }
+            } catch (e) {
+              statusEl.innerText = 'Doğrulanamadı';
+              statusEl.style.color = '#dc2626';
+              statusEl.style.fontWeight = '800';
+              statusEl.style.fontSize = '22px';
+              resultEl.innerHTML = '';
+            }
+          })();
+        </script>
+      </article>
+    </div>
+  </main>
+</body>
+</html>

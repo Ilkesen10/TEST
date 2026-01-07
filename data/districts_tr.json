@@ -1,0 +1,14 @@
+{
+  "Adana": ["Seyhan","Yüreğir","Çukurova","Sarıçam","Ceyhan","Kozan","İmamoğlu","Karataş","Aladağ","Pozantı","Tufanbeyli","Feke","Saimbeyli","Yumurtalık"],
+  "Adıyaman": ["Merkez","Kahta","Besni","Gölbaşı","Gerger","Samsat","Sincik","Tut","Çelikhan"],
+  "Afyonkarahisar": ["Merkez","Dinar","Sandıklı","Bolvadin","Emirdağ","İscehisar","Şuhut","Çay","Sultandağı","Çobanlar","Dazkırı","Hocalar","Kızılören","Bayat","İhsaniye","Sinanpaşa"],
+  "Ağrı": ["Merkez","Doğubayazıt","Patnos","Diyadin","Tutak","Taşlıçay","Hamur","Eleşkirt"],
+  "Amasya": ["Merkez","Merzifon","Suluova","Taşova","Gümüşhacıköy","Hamamözü"],
+  "Ankara": ["Çankaya","Keçiören","Yenimahalle","Etimesgut","Mamak","Sincan","Altındağ","Pursaklar","Gölbaşı","Polatlı","Ayaş","Beypazarı","Çamlıdere","Çubuk","Elmadağ","Evren","Haymana","Kalecik","Kızılcahamam","Nallıhan","Şereflikoçhisar","Akyurt","Kahramankazan"],
+  "Antalya": ["Kepez","Muratpaşa","Konyaaltı","Alanya","Manavgat","Serik","Kumluca","Finike","Kemer","Gazipaşa","Demre","Kaş","Elmalı","Korkuteli","İbradı","Akseki","Gündoğmuş"] ,
+  "İstanbul": ["Kadıköy","Üsküdar","Beşiktaş","Şişli","Beyoğlu","Bakırköy","Fatih","Kağıthane","Sarıyer","Başakşehir","Bağcılar","Bahçelievler","Esenler","Sultangazi","Gaziosmanpaşa","Eyüpsultan","Zeytinburnu","Maltepe","Kartal","Pendik","Tuzla","Sancaktepe","Ataşehir","Çekmeköy","Beykoz","Ümraniye","Sultanbeyli","Arnavutköy","Avcılar","Büyükçekmece","Beylikdüzü","Esenyurt","Çatalca","Silivri","Şile","Adalar"] ,
+  "İzmir": ["Konak","Karşıyaka","Bornova","Bayraklı","Buca","Gaziemir","Karabağlar","Balçova","Narlıdere","Çiğli","Menemen","Foça","Aliağa","Dikili","Bergama","Kınık","Ödemiş","Kiraz","Beydağ","Torbalı","Seferihisar","Menderes","Urla","Güzelbahçe","Tire","Selçuk","Karaburun","Çeşme"],
+  "Bursa": ["Osmangazi","Yıldırım","Nilüfer","İnegöl","Gemlik","Mudanya","Karacabey","Mustafakemalpaşa","Orhangazi","Yenişehir","Kestel","Gürsu","Orhaneli","Harmancık","Keles","Büyükorhan"],
+  "Konya": ["Selçuklu","Meram","Karatay","Ereğli","Akşehir","Beyşehir","Cihanbeyli","Ilgın","Sarayönü","Seydişehir","Kulu","Kadınhanı","Bozkır","Çumra","Derbent","Doğanhisar","Hadim","Halkapınar","Hüyük","Taşkent","Tuzlukçu","Yalıhüyük","Altınekin"],
+  "Şanlıurfa": ["Haliliye","Eyyübiye","Karaköprü","Viranşehir","Suruç","Siverek","Akçakale","Birecik","Bozova","Hilvan","Ceylanpınar","Harran","Halfeti"]
+}
