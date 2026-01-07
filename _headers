@@ -1,8 +1,9 @@
 /*
-Content-Security-Policy: default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com https://doc.ilkesen.org.tr https://polo-telecharger-forms-maybe.trycloudflare.com https://.trycloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://.supabase.co https://.functions.supabase.co https://doc.ilkesen.org.tr https://polo-telecharger-forms-maybe.trycloudflare.com https://.trycloudflare.com wss://doc.ilkesen.org.tr wss://polo-telecharger-forms-maybe.trycloudflare.com wss://.trycloudflare.com; frame-src 'self' https: blob: data: https://www.google.com https://www.gstatic.com https://.supabase.co https://doc.ilkesen.org.tr https://polo-telecharger-forms-maybe.trycloudflare.com*https://*.trycloudflare.com; object-src 'self' blob: data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+Content-Security-Policy: default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com https://polo-telecharger-forms-maybe.trycloudflare.com https://.trycloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://www.gstatic.com https://dulnucqcglytdkiditbw.supabase.co https://dulnucqcglytdkiditbw.functions.supabase.co https://polo-telecharger-forms-maybe.trycloudflare.com https://.trycloudflare.com wss://polo-telecharger-forms-maybe.trycloudflare.com wss://.trycloudflare.com; frame-src 'self' https: blob: data: https://www.google.com https://www.gstatic.com https://polo-telecharger-forms-maybe.trycloudflare.com https://.trycloudflare.com; object-src 'self' blob: data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
+
 
 
 
