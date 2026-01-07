@@ -108,7 +108,34 @@
           const res = await window.mammoth.convertToHtml({ arrayBuffer: filledAb });
           const html = res && res.value ? res.value : '<div></div>';
           form.innerHTML = '';
-          const ed = document.createElement('div'); ed.contentEditable='true'; ed.style.minHeight='900px'; ed.style.padding='24px'; ed.style.background='#fff'; ed.style.border='1px solid #e5e7eb'; ed.style.borderRadius='10px'; ed.style.overflow='auto'; ed.innerHTML = html; form.appendChild(ed);
+          let bgUrl = null;
+          try{
+            const headResp = await fetch('assets/sablon_bg.png', { method:'HEAD' });
+            if (headResp && headResp.ok) bgUrl = 'assets/sablon_bg.png';
+          }catch{}
+          const page = document.createElement('div');
+          page.style.position='relative';
+          page.style.width='794px';
+          page.style.minHeight='1123px';
+          page.style.margin='0 auto';
+          page.style.background='#ffffff';
+          page.style.boxShadow='0 0 0 1px #e5e7eb';
+          if (bgUrl){
+            page.style.backgroundImage = `url(${bgUrl})`;
+            page.style.backgroundRepeat = 'no-repeat';
+            page.style.backgroundPosition = 'top left';
+            page.style.backgroundSize = 'cover';
+          }
+          const ed = document.createElement('div');
+          ed.contentEditable='true';
+          ed.style.minHeight='1023px';
+          ed.style.padding='120px 80px 80px 80px';
+          ed.style.lineHeight='1.4';
+          ed.style.fontFamily='Times New Roman, serif';
+          ed.style.fontSize='14px';
+          ed.innerHTML = html;
+          page.appendChild(ed);
+          form.appendChild(page);
           const act = document.createElement('div'); act.style.display='flex'; act.style.gap='8px'; act.style.marginTop='8px';
           const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Kaydet';
           const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='İptal';
@@ -118,7 +145,7 @@
             e2.preventDefault();
             try{
               saveBtn.disabled = true; saveBtn.textContent='Kaydediliyor...';
-              const canvas = await html2canvas(ed, { scale: 2, backgroundColor:'#ffffff' });
+              const canvas = await html2canvas(page, { scale: 2, backgroundColor:'#ffffff' });
               const img = canvas.toDataURL('image/png');
               const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null; if (!jsPDF) throw new Error('PDF oluşturma hazır değil');
               const pdf = new jsPDF({ unit:'pt', format:'a4', orientation:'portrait' });
