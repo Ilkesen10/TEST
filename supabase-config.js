@@ -8,6 +8,7 @@
     return;
   }
 
+  window.ILKE_SUPABASE_URL = SUPABASE_URL;
   window.ilkeSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: false }
   });

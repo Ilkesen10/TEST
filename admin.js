@@ -28,6 +28,46 @@
     m.style.overflow = 'auto';
   }
 
+  let _msalApp = null; let _msalAccount = null;
+  function msalEnabled(){ return !!(window.msal && window.MSAL_CONFIG && window.MSAL_CONFIG.clientId); }
+  function getMsalApp(){
+    if (!_msalApp && msalEnabled()){
+      _msalApp = new window.msal.PublicClientApplication({
+        auth: {
+          clientId: window.MSAL_CONFIG.clientId,
+          authority: window.MSAL_CONFIG.authority || 'https://login.microsoftonline.com/common',
+          redirectUri: window.MSAL_CONFIG.redirectUri || window.location.origin
+        }
+      });
+    }
+    return _msalApp;
+  }
+  async function acquireGraphToken(){
+    const app = getMsalApp();
+    if (!app) throw new Error('Word Online yapılandırması yok');
+    const scopes = window.MSAL_CONFIG.scopes || ['Files.ReadWrite.All','offline_access'];
+    const accounts = app.getAllAccounts();
+    if (accounts && accounts.length) _msalAccount = accounts[0];
+    if (!_msalAccount){ const r = await app.loginPopup({ scopes }); _msalAccount = r.account; }
+    try{ const r = await app.acquireTokenSilent({ scopes, account:_msalAccount }); return r.accessToken; }
+    catch{ const r = await app.acquireTokenPopup({ scopes }); return r.accessToken; }
+  }
+  async function graphFetch(path, init){
+    const token = await acquireGraphToken();
+    const headers = Object.assign({}, (init && init.headers)||{}, { Authorization: 'Bearer ' + token });
+    return fetch('https://graph.microsoft.com/v1.0' + path, Object.assign({}, init, { headers }));
+  }
+  async function graphUploadDocxToPath(path, blob){
+    const res = await graphFetch('/me/drive/root:' + encodeURI(path) + ':/content', { method:'PUT', body: blob });
+    if (!res.ok) throw new Error('Belge OneDrive yüklenemedi');
+    return res.json();
+  }
+  async function graphExportPdfById(itemId){
+    const res = await graphFetch('/me/drive/items/' + encodeURIComponent(itemId) + '/content?format=pdf', { method:'GET' });
+    if (!res.ok) throw new Error('PDF dışa aktarılamadı');
+    return res.blob();
+  }
+
   async function generateNextOutgoingRecordNo(){
     try{
       const year = new Date().getFullYear();
@@ -104,65 +144,94 @@
           const trDate = dSel.toLocaleDateString('tr-TR');
           doc.setData({ KAYITSIRANO: recordNo, KAYIT_SIRA_NO: recordNo, TARIH: trDate, KISI_KURUM: toOrg, EK: att, EKI: att, KONUSU: subject, DOSYA_NO: fileNo });
           try{ doc.render(); }catch{ throw new Error('Şablon doldurulamadı'); }
-          const filledAb = doc.getZip().generate({ type:'arraybuffer' });
-          const res = await window.mammoth.convertToHtml({ arrayBuffer: filledAb });
-          const html = res && res.value ? res.value : '<div></div>';
-          form.innerHTML = '';
-          let bgUrl = null;
-          try{
-            const headResp = await fetch('assets/sablon_bg.png', { method:'HEAD' });
-            if (headResp && headResp.ok) bgUrl = 'assets/sablon_bg.png';
-          }catch{}
-          const page = document.createElement('div');
-          page.style.position='relative';
-          page.style.width='794px';
-          page.style.minHeight='1123px';
-          page.style.margin='0 auto';
-          page.style.background='#ffffff';
-          page.style.boxShadow='0 0 0 1px #e5e7eb';
-          if (bgUrl){
-            page.style.backgroundImage = `url(${bgUrl})`;
-            page.style.backgroundRepeat = 'no-repeat';
-            page.style.backgroundPosition = 'top left';
-            page.style.backgroundSize = 'cover';
-          }
-          const ed = document.createElement('div');
-          ed.contentEditable='true';
-          ed.style.minHeight='1023px';
-          ed.style.padding='120px 80px 80px 80px';
-          ed.style.lineHeight='1.4';
-          ed.style.fontFamily='Times New Roman, serif';
-          ed.style.fontSize='14px';
-          ed.innerHTML = html;
-          page.appendChild(ed);
-          form.appendChild(page);
-          const act = document.createElement('div'); act.style.display='flex'; act.style.gap='8px'; act.style.marginTop='8px';
-          const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Kaydet';
-          const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='İptal';
-          act.appendChild(saveBtn); act.appendChild(cancelBtn2); form.appendChild(act);
-          cancelBtn2.addEventListener('click', (e2)=>{ e2.preventDefault(); closeModal(); });
-          saveBtn.addEventListener('click', async (e2)=>{
-            e2.preventDefault();
+          const docxBlob = doc.getZip().generate({ type:'blob' });
+
+          if (msalEnabled()){
+            const safeKey = recordNo.replace(/\//g,'_');
+            const path = `/Apps/IlkeSendika/GidenEvrak/${new Date().getFullYear()}/${safeKey}.docx`;
+            const item = await graphUploadDocxToPath(path, docxBlob);
+            const itemId = item && item.id; const webUrl = item && item.webUrl;
+            if (!itemId || !webUrl) throw new Error('OneDrive dosyası oluşturulamadı');
+            form.innerHTML = '';
+            const info = document.createElement('div'); info.textContent = 'Belge Word Online ile yeni sekmede açıldı. Düzenlemeyi bitirip buradan kaydedin.'; form.appendChild(info);
+            const actions2 = document.createElement('div'); actions2.style.display='flex'; actions2.style.gap='8px'; actions2.style.marginTop='8px';
+            const openBtn = document.createElement('a'); openBtn.href=webUrl; openBtn.target='_blank'; openBtn.rel='noopener'; openBtn.className='btn btn-outline'; openBtn.textContent='Word Online’da Aç'; actions2.appendChild(openBtn);
+            const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Kaydet'; actions2.appendChild(saveBtn);
+            const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='İptal'; actions2.appendChild(cancelBtn2);
+            form.appendChild(actions2);
+            cancelBtn2.addEventListener('click', (e2)=>{ e2.preventDefault(); closeModal(); });
+            try{ window.open(webUrl, '_blank', 'noopener'); }catch{}
+            saveBtn.addEventListener('click', async (e2)=>{
+              e2.preventDefault();
+              try{
+                saveBtn.disabled = true; saveBtn.textContent='Kaydediliyor...';
+                const pdfBlob = await graphExportPdfById(itemId);
+                const safeKey2 = recordNo.replace(/\//g,'_');
+                const key2 = `outgoing/${new Date().getFullYear()}/${safeKey2}_${Date.now()}.pdf`;
+                const fileUrl = await uploadToBucketGeneric(pdfBlob, 'docs', key2);
+                const payload = { record_no: recordNo, date: dateIso, to_org: toOrg, attachment: att, subject: subject, file_no: fileNo, file_url: fileUrl };
+                let q; if (isEdit && row.id){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); } else { q = sb().from('outgoing_docs').insert(payload).select('id').single(); }
+                const { error } = await q; if (error) throw error;
+                closeModal(); await loadAdminOutgoingDocs();
+              }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); saveBtn.textContent='Kaydet'; saveBtn.disabled=false; }
+            });
+          } else {
+            const filledAb = doc.getZip().generate({ type:'arraybuffer' });
+            let html = '';
             try{
-              saveBtn.disabled = true; saveBtn.textContent='Kaydediliyor...';
-              const canvas = await html2canvas(page, { scale: 2, backgroundColor:'#ffffff' });
-              const img = canvas.toDataURL('image/png');
-              const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null; if (!jsPDF) throw new Error('PDF oluşturma hazır değil');
-              const pdf = new jsPDF({ unit:'pt', format:'a4', orientation:'portrait' });
-              const pw = pdf.internal.pageSize.getWidth(); const ph = pdf.internal.pageSize.getHeight();
-              const iw = canvas.width; const ih = canvas.height; const r = Math.min(pw/iw, ph/ih);
-              const w = iw*r; const h = ih*r; const x = (pw - w)/2; const y = (ph - h)/2;
-              pdf.addImage(img, 'PNG', x, y, w, h, undefined, 'FAST');
-              const blob = pdf.output('blob');
-              const safeKey = recordNo.replace(/\//g,'_');
-              const key = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.pdf`;
-              const fileUrl = await uploadToBucketGeneric(blob, 'docs', key);
-              const payload = { record_no: recordNo, date: dateIso, to_org: toOrg, attachment: att, subject: subject, file_no: fileNo, file_url: fileUrl };
-              let q; if (isEdit && row.id){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); } else { q = sb().from('outgoing_docs').insert(payload).select('id').single(); }
-              const { error } = await q; if (error) throw error;
-              closeModal(); await loadAdminOutgoingDocs();
-            }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); saveBtn.textContent='Kaydet'; saveBtn.disabled=false; }
-          });
+              const { data, error } = await sb().functions.invoke('docx-to-html', {
+                body: filledAb,
+                headers: { 'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+              });
+              if (error) throw error;
+              html = data && data.html ? String(data.html) : '';
+            }catch{
+              const res = await window.mammoth.convertToHtml({ arrayBuffer: filledAb });
+              html = res && res.value ? res.value : '';
+            }
+            if (!html) html = '<div></div>';
+            form.innerHTML = '';
+            let bgUrl = null;
+            try{ const headResp = await fetch('assets/sablon_bg.png', { method:'HEAD' }); if (headResp && headResp.ok) bgUrl = 'assets/sablon_bg.png'; }catch{}
+            const page = document.createElement('div');
+            page.style.position='relative'; page.style.width='794px'; page.style.minHeight='1123px'; page.style.margin='0 auto'; page.style.background='#ffffff'; page.style.boxShadow='0 0 0 1px #e5e7eb';
+            if (bgUrl){ page.style.backgroundImage = `url(${bgUrl})`; page.style.backgroundRepeat = 'no-repeat'; page.style.backgroundPosition = 'top left'; page.style.backgroundSize = 'cover'; }
+            const tb = document.createElement('div'); tb.id = 'outgoingEditorToolbar'; tb.style.margin='8px 0'; form.appendChild(tb);
+            const ed = document.createElement('div'); ed.id='outgoingEditor'; ed.contentEditable='true'; ed.style.minHeight='1023px'; ed.style.padding='120px 80px 80px 80px'; ed.style.lineHeight='1.4'; ed.style.fontFamily='Times New Roman, serif'; ed.style.fontSize='14px'; ed.innerHTML = html; page.appendChild(ed);
+            form.appendChild(page);
+            try{
+              if (window.tinymce){
+                window.tinymce.init({
+                  selector:'#outgoingEditor',
+                  inline:true,
+                  menubar:false,
+                  plugins:'lists table',
+                  toolbar:'undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | table',
+                  fixed_toolbar_container:'#outgoingEditorToolbar'
+                });
+              }
+            }catch{}
+            const act = document.createElement('div'); act.style.display='flex'; act.style.gap='8px'; act.style.marginTop='8px';
+            const saveBtn = document.createElement('button'); saveBtn.className='btn btn-success'; saveBtn.textContent='Kaydet';
+            const cancelBtn2 = document.createElement('button'); cancelBtn2.className='btn btn-danger'; cancelBtn2.textContent='İptal';
+            act.appendChild(saveBtn); act.appendChild(cancelBtn2); form.appendChild(act);
+            cancelBtn2.addEventListener('click', (e2)=>{ e2.preventDefault(); try{ window.tinymce && window.tinymce.remove('#outgoingEditor'); }catch{} closeModal(); });
+            saveBtn.addEventListener('click', async (e2)=>{
+              e2.preventDefault();
+              try{
+                saveBtn.disabled = true; saveBtn.textContent='Kaydediliyor...';
+                const opt = { margin: 0, filename: 'outgoing.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#ffffff' }, jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' } };
+                const blob = await window.html2pdf().from(page).set(opt).toPdf().get('pdf').then(p=>p.output('blob'));
+                const safeKey = recordNo.replace(/\//g,'_');
+                const key = `outgoing/${new Date().getFullYear()}/${safeKey}_${Date.now()}.pdf`;
+                const fileUrl = await uploadToBucketGeneric(blob, 'docs', key);
+                const payload = { record_no: recordNo, date: dateIso, to_org: toOrg, attachment: att, subject: subject, file_no: fileNo, file_url: fileUrl };
+                let q; if (isEdit && row.id){ q = sb().from('outgoing_docs').update(payload).eq('id', row.id); } else { q = sb().from('outgoing_docs').insert(payload).select('id').single(); }
+                const { error } = await q; if (error) throw error;
+                try{ window.tinymce && window.tinymce.remove('#outgoingEditor'); }catch{} closeModal(); await loadAdminOutgoingDocs();
+              }catch(err){ alert('Kaydedilemedi: ' + (err?.message||String(err))); saveBtn.textContent='Kaydet'; saveBtn.disabled=false; }
+            });
+          }
         }catch(e){ alert('Belge açılmadı: ' + (e?.message||String(e))); genBtn.textContent='Belge Oluştur'; genBtn.disabled=false; }
       });
       (typeof openModal === 'function' ? openModal() : (window.openModal && window.openModal()));
